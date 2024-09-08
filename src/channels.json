@@ -1,0 +1,161 @@
+[{
+        "nickname": "honeymad",
+        "name": "Мэддисон",
+        "platform": "twitch",
+        "notify": {
+            "-1647320059": "live",
+            "-1751736036": "live"
+        },
+        "strings": {
+            "livestream_start": "{Name} Завёл стрим!{NewLine}Игра: {Category}.{NewLine}Название: {Title}.",
+            "livestream_end": "{Name} Оффнул с позором.",
+            "livestream_update_category": "{Name} Теперь играет в {Category}.{NewLine}Название: {Title}.",
+            "livestream_duration": "Стрим длится: {Time}.",
+            "livestream_viewers": "Малюток: {Viewers}."
+        }
+    },
+    {
+        "nickname": "gilticus",
+        "name": "Gilticus",
+        "platform": "twitch",
+        "notify": {
+            "-1501973723": "live",
+            "-2126986481": "live"
+        }
+    },
+    {
+        "nickname": "vorobiov__",
+        "name": "Vorobiov__",
+        "platform": "twitch",
+        "notify": {
+            "-1647320059": "updates",
+            "-1501973723": "live"
+        }
+    },
+    {
+        "nickname": "lildonique",
+        "name": "Donique",
+        "platform": "twitch",
+        "notify": {
+            "-1751736036": "updates",
+            "-1738977757": "live"
+        }
+    },
+    {
+        "nickname": "benjy",
+        "name": "Benjy",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "renatische",
+        "name": "Renatische",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "revolt",
+        "name": "REVOLT",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "snailkick",
+        "name": "Snailkick",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "degrastream",
+        "name": "Degrastream",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "gufovicky",
+        "name": "Gufovicky",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "ditoshey",
+        "name": "Ditoshey",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "vombuz",
+        "name": "Vombuz",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "deadp47_",
+        "name": "DeadP47_",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "rachtaz",
+        "name": "RachtaZ",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "welovegames",
+        "name": "WELOVEGAMES",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "thedrewzaj",
+        "name": "TheDREWZAJ",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "codemiko",
+        "name": "Code Miko",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "alinarinrin",
+        "name": "Алина Рин",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "neenoh",
+        "name": "Neenoh",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "delaney",
+        "name": "Delaney",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "hornetlul",
+        "name": "hornetlul",
+        "platform": "twitch",
+        "notify": {}
+    },
+    {
+        "nickname": "irinatuk_3d",
+        "name": "irinatuk_3d",
+        "platform": "twitch",
+        "notify": {
+            "-1939060717": "updates",
+            "-1843403165": "live"
+        }
+    },
+    {
+        "nickname": "karmikkoala",
+        "name": "KarmikKoala",
+        "platform": "twitch",
+        "notify": {}
+    }
+]

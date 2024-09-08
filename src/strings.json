@@ -1,0 +1,18 @@
+{
+    "en": {
+        "livestream_start": "{Name} has started streaming!{NewLine}Category: {Category}.{NewLine}Title: {Title}.",
+        "livestream_end": "{Name} finished broadcast.",
+        "livestream_update_title": "{Name} changed stream Title to {Title}.{NewLine}Category: {Category}.",
+        "livestream_update_category": "{Name} changed stream Category to {Category}.{NewLine}Title: {Title}.",
+        "livestream_duration": "Broadcast duration: {Time}.",
+        "livestream_viewers": "Viewers: {Viewers}."
+    },
+    "ru": {
+        "livestream_start": "{Name} Начал трансляцию!{NewLine}Категория: {Category}.{NewLine}Название: {Title}.",
+        "livestream_end": "{Name} Завершил поток.",
+        "livestream_update_title": "{Name} Изменил название на {Title}.{NewLine}Категория: {Category}.",
+        "livestream_update_category": "{Name} Сменил категорию на {Category}.{NewLine}Название: {Title}.",
+        "livestream_duration": "Продолжительность стрима: {Time}.",
+        "livestream_viewers": "Зрители: {Viewers}."
+    }
+}
