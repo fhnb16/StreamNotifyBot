@@ -1,17 +1,21 @@
 {
     "en": {
-        "livestream_start": "{Name} has started streaming!{NewLine}Category: {Category}.{NewLine}Title: {Title}.",
-        "livestream_end": "{Name} finished broadcast.",
-        "livestream_update_title": "{Name} changed stream Title to {Title}.{NewLine}Category: {Category}.",
-        "livestream_update_category": "{Name} changed stream Category to {Category}.{NewLine}Title: {Title}.",
+        "livestream_start": "🚀 {Name} has started streaming!{NewLine}Category: {Category}.{NewLine}Title: {Title}.",
+        "livestream_end": "{Name} finished broadcast 😞{NewLine}Stream length: {Time}",
+        "livestream_update_title": "✨ Changed stream Title to {Title}.{NewLine}",
+        "livestream_update_category": "Changed stream Category to {Category} 🎮{NewLine}",
+        "livestream_title": "Title: {Title}.{NewLine}",
+        "livestream_category": "Category: {Category} 🎮{NewLine}",
         "livestream_duration": "Broadcast duration: {Time}.",
         "livestream_viewers": "Viewers: {Viewers}."
     },
     "ru": {
-        "livestream_start": "{Name} Начал трансляцию!{NewLine}Категория: {Category}.{NewLine}Название: {Title}.",
-        "livestream_end": "{Name} Завершил поток.",
-        "livestream_update_title": "{Name} Изменил название на {Title}.{NewLine}Категория: {Category}.",
-        "livestream_update_category": "{Name} Сменил категорию на {Category}.{NewLine}Название: {Title}.",
+        "livestream_start": "🚀 {Name} Начинает трансляцию!{NewLine}Категория: {Category}.{NewLine}Название: {Title}.",
+        "livestream_end": "{Name} Завершил поток ‍😞{NewLine}Стрим длился {Time}",
+        "livestream_update_title": "✨ Изменил название на {Title}.{NewLine}",
+        "livestream_update_category": " Сменил категорию на {Category} 🎮{NewLine}",
+        "livestream_title": "Название {Title}.{NewLine}",
+        "livestream_category": "Категория {Category} 🎮{NewLine}",
         "livestream_duration": "Продолжительность стрима: {Time}.",
         "livestream_viewers": "Зрители: {Viewers}."
     }

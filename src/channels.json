@@ -3,13 +3,14 @@
         "name": "Мэддисон",
         "platform": "twitch",
         "notify": {
-            "-1647320059": "live",
-            "-1751736036": "live"
+            "-1001647320059:Чат Воробьев": "live",
+            "-1001751736036:Чат Donique https://t.me/doniquechat": "live",
+            "-1002496813968:https://t.me/maddysonOnline": "all"
         },
         "strings": {
             "livestream_start": "{Name} Завёл стрим!{NewLine}Игра: {Category}.{NewLine}Название: {Title}.",
-            "livestream_end": "{Name} Оффнул с позором.",
-            "livestream_update_category": "{Name} Теперь играет в {Category}.{NewLine}Название: {Title}.",
+            "livestream_end": "{Name} Оффнул с позором.{NewLine}Под конец было {Viewers} зрилов.{NewLine}Подруб длился: {Time}",
+            "livestream_update_category": "Теперь играет в {Category}.{NewLine}Название: {Title}.",
             "livestream_duration": "Стрим длится: {Time}.",
             "livestream_viewers": "Малюток: {Viewers}."
         }
@@ -19,8 +20,10 @@
         "name": "Gilticus",
         "platform": "twitch",
         "notify": {
-            "-1501973723": "live",
-            "-2126986481": "live"
+            "-1001647320059:Чат Воробьев": "live",
+            "-1002126986481:Чат БКТ": "live",
+            "-1002086910133:https://t.me/GilticusOfficial": "all",
+            "-1002136494074:https://t.me/GilticusWild": "all"
         }
     },
     {
@@ -28,8 +31,10 @@
         "name": "Vorobiov__",
         "platform": "twitch",
         "notify": {
-            "-1647320059": "updates",
-            "-1501973723": "live"
+            "-1001647320059:Чат Воробьев": "updates",
+            "-1001501973723:https://t.me/dmitrytomato_streams": "live",
+            "-1002086910133:https://t.me/GilticusOfficial": "all",
+            "-1002136494074:https://t.me/GilticusWild": "all"
         }
     },
     {
@@ -37,8 +42,8 @@
         "name": "Donique",
         "platform": "twitch",
         "notify": {
-            "-1751736036": "updates",
-            "-1738977757": "live"
+            "-1001751736036:Чат Donique https://t.me/doniquechat": "updates",
+            "-1001738977757:https://t.me/lildonique": "live"
         }
     },
     {
@@ -57,7 +62,9 @@
         "nickname": "revolt",
         "name": "REVOLT",
         "platform": "twitch",
-        "notify": {}
+        "notify": {
+            "-1002312612782:https://t.me/RevoltStreaming": "all"
+        }
     },
     {
         "nickname": "snailkick",
@@ -148,8 +155,8 @@
         "name": "irinatuk_3d",
         "platform": "twitch",
         "notify": {
-            "-1939060717": "updates",
-            "-1843403165": "live"
+            "-1001939060717:Чат irinatuk": "updates",
+            "-1001843403165:https://t.me/IrinaTukPlay": "live"
         }
     },
     {

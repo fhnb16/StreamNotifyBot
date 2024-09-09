@@ -32,15 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 switch ($event_type) {
                     case 'stream.online':
-                        handle_stream_event($data['event'], 'online', $data['event']['started_at']);
+                        handle_stream_event($data['event'], 'online');
                         break;
 
                     case 'stream.offline':
-                        handle_stream_event($data['event'], 'offline', $data['event']['started_at']);
+                        handle_stream_event($data['event'], 'offline');
                         break;
 
                     case 'channel.update':
-                        handle_stream_event($data['event'], 'update', $data['event']['started_at']);
+                        handle_stream_event($data['event'], 'update');
                         break;
 
                     // Add more cases for other types of events
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     log_message("Error: Received non-POST request");
 }
 
-function handle_stream_event($event, $type, $eventTime) {
+function handle_stream_event($event, $type) {
     global $channels, $locales;
 
     // Load channels list from JSON file
@@ -76,7 +76,11 @@ function handle_stream_event($event, $type, $eventTime) {
                 $channels[$id]['nickname'] = $event['broadcaster_user_login'];
             }
 
-            $livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
+            $livestreamInfo = null;
+
+            if($type == "update"){
+                $livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
+            }
 
             $channel['title'] = $livestreamInfo['title'];
             $channels[$id]['title'] = $livestreamInfo['title'];
@@ -86,7 +90,7 @@ function handle_stream_event($event, $type, $eventTime) {
             
             $broadcastingTime = "";
             if (isset($channels[$id]['startedAt'])) {
-                $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], $eventTime);
+                $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], $event['started_at']);
             } else {
                 $broadcastingTime = "-1";
             }
@@ -97,13 +101,13 @@ function handle_stream_event($event, $type, $eventTime) {
             switch($type) {
                 case 'online':
                     $channels[$id]['startedAt'] = $startedAt;
-                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "online");
+                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "online", $event);
                     break;
                 case 'update': 
-                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "update");
+                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "update", $event);
                     break;
                 case 'offline': 
-                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "offline");
+                    $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "offline", $event);
                     unset($channels[$id]['startedAt']);
                     break;
             }
@@ -154,18 +158,20 @@ function notify_channels($channel, $message, $type) {
     log_message("Sending notification to channels for {$channel['nickname']}: {$message}");
     
     if (defined('MAIN_CHAT_ID') && null !== MAIN_CHAT_ID && !empty(MAIN_CHAT_ID)) {
-        log_message("Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message)); // Notify main chat
+        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message)); // Notify main chat
     }
 
     foreach ($channel['notify'] as $chat_id => $notify_type) {
+        $chat_id = explode(':', $chat_id)[0];
+        $chat_name = explode(':', $chat_id)[1];
         if ($notify_type === 'all') {
-            log_message("Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
         if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
-            log_message("Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
         if ($notify_type === 'live' && $type == 'online') {
-            log_message("Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
     }
 }

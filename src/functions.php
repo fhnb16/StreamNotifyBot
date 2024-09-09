@@ -429,7 +429,7 @@ function get_stream_info_by_user_id($user_id) {
     $data = json_decode($response, true);
     $data = $data['data'][0];
 
-    log_message("Get user: " . $user_id . " info, Response: " . $response);
+    log_message("Get user: " . $user_id . " info, Response: " . json_encode($data));
 
     // Check if the response contains stream data
     if (isset($data)) {
@@ -455,14 +455,26 @@ function replaceMultipleStrings($sourceString, $replaceArray) {
     try {
         return strtr($sourceString, $replaceArray);
     } catch (Exception $e) {
-        log_message("Ошибка при замене подстрок: " . $e->getMessage());
+        log_message("String replace error: " . $e->getMessage());
         return $sourceString;
     }
 }
 
 // Основная функция для формирования сообщения
-function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime, $status) {
-    $lang = $livestreamInfo['language']; // Язык, используемый в трансляции
+function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime, $status, $event) {
+
+    $category = $lang = $title = "";
+
+    if($livestreamInfo !== null) {
+        $category = $livestreamInfo['game_name'];
+        $title = $livestreamInfo['title'];
+        $lang = $livestreamInfo['language'];
+    } else {
+        $category = $event['category_name'];
+        $title = $event['title'];
+        $lang = $event['language'];
+    }
+
     $strings = isset($locales[$lang]) ? $locales[$lang] : $locales['en']; // Выбираем язык, если нет языка — используем английский
     
     // Если у стримера в json есть кастомные строки - используем их
@@ -482,12 +494,13 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     ]);
 
     // Подготовка переменных для замены
+
     $replaceArray = [
-        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '">' . $livestreamInfo['user_name'] . '</a>',
-        '{Category}' => $livestreamInfo['game_name'],
-        '{Title}' => $livestreamInfo['title'],
-        '{Viewers}' => $livestreamInfo['viewer_count'],
-        '{Time}' => $StreamTime,
+        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '">' . $event['broadcaster_user_name'] . '</a>',
+        '{Category}' => "<b>".$category."</b>",
+        '{Title}' => "<i>".$title."</i>",
+        '{Viewers}' => "<u>".$livestreamInfo['viewer_count']."</u>",
+        '{Time}' => "<b>".$StreamTime."</b>",
         '{NewLine}' => PHP_EOL
     ];
 
@@ -501,31 +514,46 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
 
         case 'offline':
             $message = replaceMultipleStrings($strings['livestream_end'], $replaceArray);
-            if ($livestreamInfo['viewer_count']) {
+            if ($livestreamInfo['viewer_count'] > "0") {
                 $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
             }
             break;
 
         case 'update':
             $updated = false;
+
+            $message = '<a href="' . $previewUrl . '">&#8205;</a>';
+            $message .= replaceMultipleStrings("{Name} ", $replaceArray);
             
             // Проверяем изменение категории
-            if (isset($channel['category']) && $channel['category'] !== $livestreamInfo['game_name']) {
-                $message = '<a href="' . $previewUrl . '">&#8205;</a>' . replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
+            if (/*isset($channel['category']) && */$channel['category'] != $category) {
+                $message .= replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
                 $updated = true;
             }
 
             // Проверяем изменение названия стрима
-            if (isset($channel['title']) && $channel['title'] !== $livestreamInfo['title']) {
+            if (/*isset($channel['title']) && */$channel['title'] != $title) {
                 if ($updated) $message .= PHP_EOL;
-                $message .= '<a href="' . $previewUrl . '">&#8205;</a>' . replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
+                $message .= replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
                 $updated = true;
+            }
+
+            if ($updated && $channel['category'] == $category) {
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_category'], $replaceArray);
+            }
+
+            if ($updated && $channel['title'] == $title) {
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_title'], $replaceArray);
             }
 
             // Если были обновления, добавляем информацию о длительности и зрителях
             if ($updated) {
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
+                if ($StreamTime !== "-1") {
+                    $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
+                }
+                if ($livestreamInfo['viewer_count'] > "0") {
+                    $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
+                }
             }
             break;
     }

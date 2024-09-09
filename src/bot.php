@@ -7,6 +7,13 @@ if (isset($_GET['cron'])) {
     log_message("############# Cron task #############");
 }
 
+// detect cron request
+if (isset($_GET['cron']) && $_GET['cron'] == "backup") {
+    log_message("~~~ Backup channels.json ~~~");
+    $channels = load_json('channels.json');
+    save_json('backup/channels_' . date('c') . '.json', $channels);
+}
+
 // If accessed with 'subscriptions' parameter, output all active EventSub subscriptions
 if (isset($_GET['subscriptions'])) {
     header('Content-Type: application/json');
