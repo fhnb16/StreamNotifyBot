@@ -5,8 +5,11 @@ define('TWITCH_SECRET', '');
 define('TWITCH_CALLBACK_URL', 'https://example.com/twitch_webhook_handler.php'); // Your webhook handler URL
 
 // Telegram API configuration
+define('ADMIN_ID', ''); // Main channel for all notifications (optional) example: 1234567890
 define('TELEGRAM_BOT_TOKEN', '');
-define('MAIN_CHAT_ID', ''); // Main channel for all notifications (optional)
+define('MAIN_CHAT_ID', ''); // Main channel for all notifications (optional) example: -1001234567890
+define('TELEGRAM_CALLBACK_URL', 'https://example.com/index.php'); // Your callback handler URL
+define('TELEGRAM_API_URL', 'https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN);
 
 // EventSub Twitch API version
 define('TWITCH_EVENTSUB_VERSION', '1');

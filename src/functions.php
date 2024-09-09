@@ -30,7 +30,7 @@ function register_twitch_eventsub($broadcaster_id, $event_type = "stream.online"
 
 // Send Telegram message
 function send_telegram_message($chat_id, $message) {
-    $url = 'https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN . '/sendMessage';
+    $url = TELEGRAM_API_URL . '/sendMessage';
     $getData = [
         'chat_id' => $chat_id,
         'parse_mode' => "HTML",
@@ -191,6 +191,42 @@ function make_post_request($url, $data, $headers = []) {
     return $response;
 }
 
+// Set Telegram webhook to the specified URL
+function set_telegram_webhook($url) {
+    $webhookUrl = TELEGRAM_API_URL . '/setWebhook';
+    $data = [
+        'url' => $url
+    ];
+
+    $response = json_decode(make_post_request($webhookUrl, $data), true);
+
+    if (isset($response['ok']) && $response['ok'] === true) {
+        log_message("Telegram webhook successfully set to {$url}");
+        return true;
+    } else {
+        log_message("Failed to set Telegram webhook. Response: " . json_encode($response));
+        return false;
+    }
+}
+
+// Set Telegram webhook to the specified URL
+function remove_telegram_webhook($url) {
+    $webhookUrl = TELEGRAM_API_URL . '/removeWebhook';
+    $data = [
+        'url' => $url
+    ];
+
+    $response = json_decode(make_post_request($webhookUrl, $data), true);
+
+    if (isset($response['ok']) && $response['ok'] === true) {
+        log_message("Telegram webhook {$url} was removed");
+        return true;
+    } else {
+        log_message("Failed to remove Telegram webhook. Response: " . json_encode($response));
+        return false;
+    }
+}
+
 // Log message to file
 function log_message($message) {
     if (!DEBUG) { return;}
@@ -198,7 +234,7 @@ function log_message($message) {
     file_put_contents(LOG_FILE, "[{$timestamp}] {$message}\n", FILE_APPEND);
 }
 
-// Log message to file
+// Log error to file
 function error_message($message) {
     $timestamp = date("Y-m-d H:i:s");
     file_put_contents(ERR_FILE, "[{$timestamp}] {$message}\n", FILE_APPEND);
@@ -226,23 +262,49 @@ function load_json($file) {
     return $json;
 }
 
-// Save JSON to file safely with pretty print
+// Save JSON to file safely with pretty print and file locking
 function save_json($file, $data) {
     if ($data === null) {
-        log_message("Error: Attempted to save null data to JSON file {$file}. Operation aborted.");
+        error_message("Error: Attempted to save null data to JSON file {$file}. Operation aborted.");
         return false;
     }
 
     $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     if ($jsonData === false) {
-        log_message("Error: Failed to encode data as JSON for file {$file}.");
+        error_message("Error: Failed to encode data as JSON for file {$file}.");
         return false;
     }
 
-    if (file_put_contents($file, $jsonData) === false) {
-        log_message("Error: Failed to save JSON data to file {$file}.");
+    // Open file for writing, 'c' mode opens the file for writing, creates the file if it does not exist
+    $fp = fopen($file, 'c');
+    if (!$fp) {
+        error_message("Error: Failed to open file {$file} for writing.");
         return false;
     }
+
+    // Try to lock the file for exclusive writing
+    if (!flock($fp, LOCK_EX)) {
+        error_message("Error: Unable to lock file {$file} for writing.");
+        fclose($fp);
+        return false;
+    }
+
+    // Clear file contents before writing new data
+    ftruncate($fp, 0);
+
+    // Write the JSON data to the file
+    if (fwrite($fp, $jsonData) === false) {
+        error_message("Error: Failed to write JSON data to file {$file}.");
+        flock($fp, LOCK_UN); // Release the lock
+        fclose($fp);
+        return false;
+    }
+
+    // Unlock the file
+    flock($fp, LOCK_UN);
+    
+    // Close the file
+    fclose($fp);
 
     log_message("JSON file {$file} successfully saved.");
     return true;
@@ -463,17 +525,35 @@ function replaceMultipleStrings($sourceString, $replaceArray) {
 // Основная функция для формирования сообщения
 function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime, $status, $event) {
 
-    $category = $lang = $title = "";
+    $category = $lang = $title = $viewers = "";
 
     if($livestreamInfo !== null) {
         $category = $livestreamInfo['game_name'];
         $title = $livestreamInfo['title'];
         $lang = $livestreamInfo['language'];
-    } else {
-        $category = $event['category_name'];
-        $title = $event['title'];
-        $lang = $event['language'];
+        if(isset($livestreamInfo['viewer_count'])){
+            $viewers = $livestreamInfo['viewer_count'];
+        } elseif (isset($channel['viewers'])) {
+            $viewers = $channel['viewers'];
+        }
     }
+
+    if($event['category_name'] !== null) {
+        $category = $event['category_name'];
+    } else {
+        $category = $channel['category'];
+    }
+    if($event['title'] !== null) {
+        $title = $event['title'];
+    } else {
+        $title = $channel['title'];
+    }
+    if($event['language'] !== null) {
+        $lang = $event['language'];
+    } else {
+        $lang = $channel['language'];
+    }
+    $viewers = $channel['viewers'];
 
     $strings = isset($locales[$lang]) ? $locales[$lang] : $locales['en']; // Выбираем язык, если нет языка — используем английский
     
@@ -496,10 +576,10 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     // Подготовка переменных для замены
 
     $replaceArray = [
-        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '">' . $event['broadcaster_user_name'] . '</a>',
+        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '"><b><u>' . $event['broadcaster_user_name'] . '</u></b></a>',
         '{Category}' => "<b>".$category."</b>",
         '{Title}' => "<i>".$title."</i>",
-        '{Viewers}' => "<u>".$livestreamInfo['viewer_count']."</u>",
+        '{Viewers}' => "<u>".$viewers."</u>",
         '{Time}' => "<b>".$StreamTime."</b>",
         '{NewLine}' => PHP_EOL
     ];
@@ -514,7 +594,7 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
 
         case 'offline':
             $message = replaceMultipleStrings($strings['livestream_end'], $replaceArray);
-            if ($livestreamInfo['viewer_count'] > "0") {
+            if ($viewers != "-1") {
                 $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
             }
             break;
@@ -522,17 +602,34 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
         case 'update':
             $updated = false;
 
-            $message = '<a href="' . $previewUrl . '">&#8205;</a>';
+            $message = '<a href="' . $previewUrl . '?v=' . time().'">&#8205;</a>';
             $message .= replaceMultipleStrings("{Name} ", $replaceArray);
+
+            if (!isset($channel['viewers'])){
+                $message .= " " . replaceMultipleStrings($strings['livestream_offline'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
+            } else {
+                $message .= " " . replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
+                if ($StreamTime !== "-1") {
+                    $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
+                }
+            }
             
+/*
+
             // Проверяем изменение категории
-            if (/*isset($channel['category']) && */$channel['category'] != $category) {
+            if ($channel['category'] != $category) {
                 $message .= replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
                 $updated = true;
+            }else {
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_category'], $replaceArray);
             }
 
             // Проверяем изменение названия стрима
-            if (/*isset($channel['title']) && */$channel['title'] != $title) {
+            if ($channel['title'] != $title) {
                 if ($updated) $message .= PHP_EOL;
                 $message .= replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
                 $updated = true;
@@ -551,10 +648,17 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
                 if ($StreamTime !== "-1") {
                     $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
                 }
-                if ($livestreamInfo['viewer_count'] > "0") {
+                if (isset($channel['viewers'])) {
                     $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
                 }
+            } elseif (!isset($channel['viewers'])){
+                $message .= " " . replaceMultipleStrings($strings['livestream_offline'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
+                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
             }
+
+*/
+
             break;
     }
 

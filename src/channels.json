@@ -9,7 +9,7 @@
         },
         "strings": {
             "livestream_start": "{Name} Завёл стрим!{NewLine}Игра: {Category}.{NewLine}Название: {Title}.",
-            "livestream_end": "{Name} Оффнул с позором.{NewLine}Под конец было {Viewers} зрилов.{NewLine}Подруб длился: {Time}",
+            "livestream_end": "{Name} Оффнул с позором 🤡{NewLine}Под конец было {Viewers} зрилов.{NewLine}Подруб длился: {Time}",
             "livestream_update_category": "Теперь играет в {Category}.{NewLine}Название: {Title}.",
             "livestream_duration": "Стрим длится: {Time}.",
             "livestream_viewers": "Малюток: {Viewers}."
@@ -24,6 +24,11 @@
             "-1002126986481:Чат БКТ": "live",
             "-1002086910133:https://t.me/GilticusOfficial": "all",
             "-1002136494074:https://t.me/GilticusWild": "all"
+        },
+        "strings": {
+            "livestream_end": "{Name} Завершила стрим ‍😞{NewLine}Длительность {Time}",
+            "livestream_update_title": "✨ Изменила название на {Title}.{NewLine}",
+            "livestream_update_category": " Сменила категорию на {Category} 🎮{NewLine}"
         }
     },
     {
@@ -164,5 +169,19 @@
         "name": "KarmikKoala",
         "platform": "twitch",
         "notify": {}
+    },
+    {
+        "nickname": "c_a_k_e",
+        "name": "C_a_k_e",
+        "platform": "twitch",
+        "notify": []
+    },
+    {
+        "nickname": "lyasyaa",
+        "name": "Lyasyaa",
+        "platform": "twitch",
+        "notify": {
+            "-1002126986481:Чат БКТ": "live"
+        }
     }
 ]

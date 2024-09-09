@@ -68,6 +68,8 @@ function handle_stream_event($event, $type) {
     }
 
     foreach ($channels as $id => $channel) {
+        if($channel['platform'] != "twitch") continue;
+        
         if ($channels[$id]['broadcaster_id'] === $event['broadcaster_user_id']) {
             if ($channels[$id]['name'] !== $event['broadcaster_user_name']) {
                 $channels[$id]['name'] = $event['broadcaster_user_name'];
@@ -78,14 +80,44 @@ function handle_stream_event($event, $type) {
 
             $livestreamInfo = null;
 
-            if($type == "update"){
+            if(
+                isset($event['category_name']) &&
+                isset($event['title']) &&
+                isset($event['viewer_count'])
+            ) {
+
+            }
+
+            if($type == "update" || $type == "online"){
                 $livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
             }
 
-            $channel['title'] = $livestreamInfo['title'];
-            $channels[$id]['title'] = $livestreamInfo['title'];
-            $channel['category'] = $livestreamInfo['game_name'];
-            $channels[$id]['category'] = $livestreamInfo['game_name'];
+            if($livestreamInfo !== null) {
+                $channel['title'] = $livestreamInfo['title'];
+                $channels[$id]['title'] = $livestreamInfo['title'];
+                $channel['category'] = $livestreamInfo['game_name'];
+                $channels[$id]['category'] = $livestreamInfo['game_name'];
+                $channel['language'] = $livestreamInfo['language'];
+                $channels[$id]['language'] = $livestreamInfo['language'];
+                if(isset($livestreamInfo['viewer_count'])){
+                    $channel['viewers'] = $livestreamInfo['viewer_count'];
+                    $channels[$id]['viewers'] = $livestreamInfo['viewer_count'];
+                }
+            }
+            
+            if($event['category_name'] !== null) {
+                $channel['category'] = $event['category_name'];
+                $channels[$id]['category'] = $event['category_name'];
+            }
+            if($event['title'] !== null) {
+                $channel['title'] = $event['title'];
+                $channels[$id]['title'] = $event['title'];
+            }
+            if($event['language'] !== null) {
+                $channel['language'] = $event['language'];
+                $channels[$id]['language'] = $event['language'];
+            }
+
             $startedAt = $event['started_at'];
             
             $broadcastingTime = "";
@@ -109,44 +141,10 @@ function handle_stream_event($event, $type) {
                 case 'offline': 
                     $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "offline", $event);
                     unset($channels[$id]['startedAt']);
+                    unset($channels[$id]['viewers']);
                     break;
             }
 
-/*
-            if ($type === 'live') {
-                $channels[$id]['title'] = $title;
-                $channels[$id]['category'] = $category;
-                $channels[$id]['startedAt'] = $startedAt;
-                $message =
-                    "🚀 <a href='https://twitch.tv/{$channels[$id]['nickname']}'><u>{$channels[$id]['name']}</u></a> has started streaming!".PHP_EOL.
-                    "Category: <b>{$livestreamInfo['game_name']}</b>.".PHP_EOL.
-                    "Title: <i>{$livestreamInfo['title']}</i>.";
-            } elseif ($type === 'update') {
-                $channels[$id]['title'] = $title;
-                $channels[$id]['category'] = $category;
-                $broadcastingTime = "";
-                if (isset($channels[$id]['startedAt'])) {
-                    $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], $eventTime);
-                } else {
-                    $broadcastingTime = "Unknown";
-                }
-                $message = 
-                    "🎮 <a href='https://twitch.tv/{$channels[$id]['nickname']}'><u>{$channels[$id]['name']}</u></a> stream time is ".$broadcastingTime.PHP_EOL.
-                    "Category: <b>{$livestreamInfo['game_name']}</b>.".PHP_EOL.
-                    "Title: <i>{$livestreamInfo['title']}</i>.".PHP_EOL.
-                    "<b>{$livestreamInfo['viewer_count']}</b> viewers.";
-            } elseif ($type === 'ends') {
-                if (isset($channels[$id]['startedAt'])) {
-                    $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], $eventTime);
-                } else {
-                    $broadcastingTime = "Unknown";
-                }
-                unset($channels[$id]['startedAt']);
-                $message = 
-                    "😞 <a href='https://twitch.tv/{$channels[$id]['nickname']}'><u>{$channels[$id]['name']}</u></a> ended stream with <b>{$livestreamInfo['viewer_count']}</b> viewers.".PHP_EOL.
-                    "Broadcast duration: ".$broadcastingTime;
-            }
-*/
             // Notify main channel and other chats
             notify_channels($channels[$id], $message, $type);
         }
@@ -161,16 +159,19 @@ function notify_channels($channel, $message, $type) {
         log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message)); // Notify main chat
     }
 
-    foreach ($channel['notify'] as $chat_id => $notify_type) {
-        $chat_id = explode(':', $chat_id)[0];
-        $chat_name = explode(':', $chat_id)[1];
+    foreach ($channel['notify'] as $chatid => $notify_type) {
+        $chat_id = explode(':', $chatid)[0];
+        $chat_name = explode(':', $chatid)[1];
         if ($notify_type === 'all') {
             log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
         if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
             log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
-        if ($notify_type === 'live' && $type == 'online') {
+        if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
+        }
+        if ($notify_type === 'online' && $type == 'online') {
             log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
         }
     }
