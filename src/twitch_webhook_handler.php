@@ -67,9 +67,22 @@ function handle_stream_event($event, $type) {
         log_message("Error: Failed to load channels.json or the file is empty. Can't send telegram notiications.");
     }
 
+    // Собираем все user_id в массив
+    $user_ids = [];
+    foreach ($channels as $channel) {
+        if($channel['platform'] != "twitch") continue;
+        $user_ids[] = $channel['broadcaster_id'];
+    }
+    // Получаем информацию для всех стримеров разом
+    $streams_info = get_stream_info_by_user_ids($user_ids);
+    // Обрабатываем данные для каждого стримера
+    if (!$streams_info) {
+        log_message("No streams are live for the given user IDs.");
+    }
+
     foreach ($channels as $id => $channel) {
         if($channel['platform'] != "twitch") continue;
-        
+
         if ($channels[$id]['broadcaster_id'] === $event['broadcaster_user_id']) {
             if ($channels[$id]['name'] !== $event['broadcaster_user_name']) {
                 $channels[$id]['name'] = $event['broadcaster_user_name'];
@@ -89,7 +102,17 @@ function handle_stream_event($event, $type) {
             }
 
             if($type == "update" || $type == "online"){
-                $livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
+                //$livestreamInfo = $streams_info[$channels[$id]['broadcaster_id']];
+                $livestreamInfo = null;
+
+                // Проходим по массиву $streams_info и ищем стрим с необходимым user_id
+                foreach ($streams_info as $stream) {
+                    if (isset($stream['user_id']) && $stream['user_id'] == $channel['broadcaster_id']) {
+                        $livestreamInfo = $stream;
+                        break; // Прерываем цикл, если нашли нужный стрим
+                    }
+                }
+                //$livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
             }
 
             if($livestreamInfo !== null) {

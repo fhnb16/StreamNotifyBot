@@ -30,11 +30,11 @@ function handle_message($message) {
 
     switch (true) {
         case stristr($text,'/start'):
-            send_message($chatId, "Привет! Я бот для мониторинга стримеров. Используйте /help, чтобы получить список команд.");
+            send_telegram_message($chatId, "Привет! Я бот для мониторинга стримеров. Используйте /help, чтобы получить список команд.\nОбратная связь: @stickers_feedback_bot");
             break;
 
         case stristr($text,'/help'):
-            send_message($chatId, "Обратная связь: @stickers_feedback_bot\nДоступные команды:\n/start - Начать\n/help - Помощь\n/list - Список стримеров\n/online - Список стримеров в сети\n/new - добавить стримера\n/add - добавить уведомление");
+            send_telegram_message($chatId, "Обратная связь: @stickers_feedback_bot\nДоступные команды:\n/start - Начать\n/help - Помощь\n/list - Список стримеров\n/online - Список стримеров в сети\n/new - добавить стримера\n/add - добавить уведомление");
             break;
 
         case stristr($text,'/online'):
@@ -44,7 +44,7 @@ function handle_message($message) {
                 $responseText .= $streamer['name'];
                 $responseText .= ' ['.$streamer['platform'].']' . PHP_EOL;
             }
-            send_message($chatId, $responseText);
+            send_telegram_message($chatId, $responseText);
             break;
 
         case stristr($text,'/list'):
@@ -54,17 +54,43 @@ function handle_message($message) {
                 $responseText .= $streamer['name'];
                 $responseText .= ' ['.$streamer['platform'].']' . PHP_EOL;
             }
-            send_message($chatId, $responseText);
+            send_telegram_message($chatId, $responseText);
             break;
 
         case stristr($text,'/add'):
+            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             break;
 
         case stristr($text,'/new'):
+            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
+            $pattern = '/https?:\/\/(www\.)?(?<domain>[^\/]+)\/(?<nickname>[^\/]+)/';
+            preg_match($pattern, $message['text'], $matches);
+            if($matches){
+                $replaceArray = [
+                    '.com' => "",
+                    '.ru' => "",
+                    '.tv' => "",
+                    'live.' => ""
+                ];
+                $platform = replaceMultipleStrings($matches['domain'], $replaceArray);
+                $name = $matches['nickname'];
+                $nickname = strtolower($matches['nickname']);
+                $responseMessage = "Проверьте и подтвердите добавление." . PHP_EOL;
+                $responseMessage .= "<pre>".json_encode(array("name"=>$name,"nickname"=>$nickname,"platform"=>$platform), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "</pre>";
+                $buttons = [
+                    [
+                        ['text' => 'Добавить в очередь', 'callback_data' => 'add_streamer'],
+                        ['text' => 'Отменить', 'callback_data' => 'buttons_remove']
+                    ]
+                ];
+                send_telegram_message($chatId, $responseMessage, $buttons);
+            }else {
+                send_telegram_message($chatId, "Пример команды:".PHP_EOL.PHP_EOL."<pre>/new https://twitch.tv/HoneyMad</pre>".PHP_EOL.PHP_EOL."Поддерживаются ссылки на Twitch, VkPlayLive и Youtube");
+            }
             break;
 
         default:
-            //send_message($chatId, "Извините, я не понимаю эту команду.");
+            //send_telegram_message($chatId, "Извините, я не понимаю эту команду.");
     }
 }
 
@@ -74,22 +100,59 @@ function handle_message($message) {
 function handle_callback($callback) {
     $chatId = $callback['message']['chat']['id'];
     $callbackData = $callback['data'];
+    $messageId = $callback['message']['message_id'];
+    log_message("Callback recieved: ".json_encode($callback));
 
     switch ($callbackData) {
+        case 'buttons_remove':
+            remove_buttons_from_message($chatId, $messageId);
+            break;
+
+        case 'add_streamer':
+            $extractedJson = get_pre_entity_content($callback);
+            //send_telegram_callback_alert($callback['id'], $extractedJson['name']);
+            //send_telegram_message($chatId, $callback['message']['text']);
+            add_streamer_to_waitlist($extractedJson);
+            send_telegram_callback_alert($callback['id'], $extractedJson['name'] . " Добавлен в список ожидания.");
+            remove_buttons_from_message($chatId, $messageId);
+            break;
+
         case 'streamer_info':
-            send_message($chatId, "Вы выбрали просмотр информации о стримере.");
+            send_telegram_message($chatId, "Вы выбрали просмотр информации о стримере.");
             break;
 
         case 'notify_me':
-            send_message($chatId, "Теперь вы подписаны на уведомления.");
+            send_telegram_message($chatId, "Теперь вы подписаны на уведомления.");
             break;
 
         default:
-            send_message($chatId, "Неизвестная команда.");
+            send_telegram_message($chatId, "Неизвестная команда.");
     }
 
     // Подтверждаем получение callback
     answer_callback_query($callback['id']);
+}
+
+// Функция для удаления кнопок из сообщения
+function remove_buttons_from_message($chat_id, $message_id) {
+    $url = TELEGRAM_API_URL . '/editMessageReplyMarkup';
+
+    $getData = [
+        'chat_id' => $chat_id,
+        'message_id' => $message_id,
+        'reply_markup' => json_encode(['inline_keyboard' => []]) // Пустой массив для удаления кнопок
+    ];
+
+    // Создаем строку запроса
+    $queryString = http_build_query($getData);
+
+    // Объединяем базовый URL и строку запроса
+    $finalUrl = $url . "?" . $queryString;
+
+    log_message("Removing buttons from message {$message_id} in chat {$chat_id}");
+    $response = make_get_request($finalUrl);
+
+    return json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }
 
 /**
@@ -143,19 +206,6 @@ function handle_inline_query($inlineQuery) {
 
     // Отправляем ответ на inline-запрос
     send_inline_query_results($queryId, $results);
-}
-
-/**
- * Отправка сообщения пользователю
- */
-function send_message($chatId, $text) {
-    $url = TELEGRAM_API_URL . "/sendMessage";
-    $data = [
-        'chat_id' => $chatId,
-        'text' => $text,
-    ];
-
-    make_post_request($url, $data);
 }
 
 /**

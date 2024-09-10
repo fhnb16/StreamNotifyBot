@@ -28,15 +28,22 @@ function register_twitch_eventsub($broadcaster_id, $event_type = "stream.online"
 }
 
 
-// Send Telegram message
-function send_telegram_message($chat_id, $message) {
+// Send Telegram message with optional inline buttons
+function send_telegram_message($chat_id, $message, $buttons = null) {
     $url = TELEGRAM_API_URL . '/sendMessage';
     $getData = [
         'chat_id' => $chat_id,
         'parse_mode' => "HTML",
-        //'disable_web_page_preview' => true,
         'text' => $message
     ];
+
+    // Если кнопки переданы, добавляем их в параметры запроса
+    if ($buttons !== null && is_array($buttons)) {
+        $inlineKeyboard = [
+            'inline_keyboard' => $buttons
+        ];
+        $getData['reply_markup'] = json_encode($inlineKeyboard);
+    }
 
     // Создаем строку запроса
     $queryString = http_build_query($getData);
@@ -50,21 +57,79 @@ function send_telegram_message($chat_id, $message) {
     return json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }
 
-// Get Twitch access token (no changes)
-/*function get_twitch_access_token() {
-    $url = 'https://id.twitch.tv/oauth2/token';
-    $postData = [
-        'client_id' => TWITCH_CLIENT_ID,
-        'client_secret' => TWITCH_SECRET,
-        'grant_type' => 'client_credentials'
+function send_telegram_callback_alert($callback_query_id, $text) {
+    $url = TELEGRAM_API_URL . '/answerCallbackQuery';
+
+    $data = [
+        'callback_query_id' => $callback_query_id,
+        'text' => $text,
+        'show_alert' => false  // true, если нужно показать всплывающее уведомление
     ];
 
-    log_message("Twitch access token response: ");
-    $response = make_post_request($url, http_build_query($postData));
+    $queryString = http_build_query($data);
+    $finalUrl = $url . '?' . $queryString;
 
-    $data = json_decode($response, true);
-    return $data['access_token'] ?? null;
-}*/
+    $response = make_get_request($finalUrl);
+    return json_decode($response, true);
+}
+
+function get_pre_entity_content($callback) {
+    // Проверяем, есть ли entities в сообщении
+    if (isset($callback['message']['entities'])) {
+        $entities = $callback['message']['entities'];
+        $text = $callback['message']['text'];
+
+        // Проходим по всем entities
+        foreach ($entities as $entity) {
+            // Ищем entity с типом pre
+            if ($entity['type'] === 'pre') {
+                // Извлекаем offset и length для получения нужного текста
+                $offset = $entity['offset'];
+                $length = $entity['length'];
+
+                // Используем mb_substr для корректной обработки текста в кодировке UTF-8
+                return json_decode(mb_substr($text, $offset, $length, 'UTF-8'), true);
+            }
+        }
+    }
+
+    // Если ничего не найдено
+    return null;
+}
+
+function add_streamer_to_waitlist($newStreamer){
+    
+    $tempChannels = load_json('waitlist.json');
+    $tempChannels[] = $newStreamer;
+    save_json('waitlist.json', $tempChannels);
+
+}
+
+// Функция для объединения массивов, исключая дубли на основе nickname и platform
+function merge_streamers_with_waitlist($streamers, $waitlist) {
+    // Преобразуем $streamers в ассоциативный массив для быстрого поиска
+    $existingStreamers = [];
+
+    // Заполняем ассоциативный массив, где ключ — это комбинация nickname и platform
+    foreach ($streamers as $streamer) {
+        $key = $streamer['nickname'] . '_' . $streamer['platform'];
+        $existingStreamers[$key] = $streamer;
+    }
+
+    // Обрабатываем $waitlist и добавляем новые стримеры, если они не существуют в $streamers
+    foreach ($waitlist as $streamer) {
+        $key = $streamer['nickname'] . '_' . $streamer['platform'];
+
+        // Если ключ не найден в существующих стримерах, добавляем нового стримера
+        if (!isset($existingStreamers[$key])) {
+            if(get_broadcaster_id($streamer['nickname']) !== null){
+                $streamers[] = $streamer;
+            }
+        }
+    }
+
+    return $streamers;
+}
 
 // Функция для получения и кэширования токена
 function get_twitch_access_token() {
@@ -501,6 +566,52 @@ function get_stream_info_by_user_id($user_id) {
     }
 }
 
+// Получение информации о стримах для нескольких user_id с учётом пагинации
+function get_stream_info_by_user_ids(array $user_ids) {
+    $url = "https://api.twitch.tv/helix/streams";
+    $streams = [];
+    $pagination = null;
+    
+    // Разбиваем массив на куски по 100 user_id (максимум на один запрос)
+    $user_chunks = array_chunk($user_ids, 100);
+
+    foreach ($user_chunks as $chunk) {
+        do {
+            // Формируем URL с параметрами user_id
+            $query_params = http_build_query([
+                'user_id' => $chunk,
+                'after' => $pagination, // Добавляем курсор для пагинации
+            ]);
+            $fullUrl = $url . '?' . $query_params;
+
+            $headers = [
+                'Client-ID: ' . TWITCH_CLIENT_ID,
+                'Authorization: Bearer ' . get_twitch_access_token(),
+            ];
+
+            // Выполняем запрос к API
+            $response = make_get_request($fullUrl, $headers);
+            $data = json_decode($response, true);
+
+            // Добавляем полученные данные о стримах в общий массив
+            if (isset($data['data'])) {
+                $streams = array_merge($streams, $data['data']);
+            }
+
+            // Обрабатываем пагинацию
+            if (isset($data['pagination']['cursor'])) {
+                $pagination = $data['pagination']['cursor'];
+            } else {
+                $pagination = null;
+            }
+        } while ($pagination);
+    }
+
+    log_message("Stream information for user_ids: " . json_encode($streams));
+
+    return $streams; // Возвращаем массив данных о стримах
+}
+
 function broadcastCalculatedTime($start_time, $end_time){
     // Create DateTime objects
     $start = new DateTime($start_time);
@@ -618,51 +729,12 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
                 }
             }
             
-/*
-
-            // Проверяем изменение категории
-            if ($channel['category'] != $category) {
-                $message .= replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
-                $updated = true;
-            }else {
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_category'], $replaceArray);
-            }
-
-            // Проверяем изменение названия стрима
-            if ($channel['title'] != $title) {
-                if ($updated) $message .= PHP_EOL;
-                $message .= replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
-                $updated = true;
-            }
-
-            if ($updated && $channel['category'] == $category) {
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_category'], $replaceArray);
-            }
-
-            if ($updated && $channel['title'] == $title) {
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_title'], $replaceArray);
-            }
-
-            // Если были обновления, добавляем информацию о длительности и зрителях
-            if ($updated) {
-                if ($StreamTime !== "-1") {
-                    $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
-                }
-                if (isset($channel['viewers'])) {
-                    $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
-                }
-            } elseif (!isset($channel['viewers'])){
-                $message .= " " . replaceMultipleStrings($strings['livestream_offline'], $replaceArray);
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_title'], $replaceArray);
-                $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_update_category'], $replaceArray);
-            }
-
-*/
 
             break;
     }
 
     return $message;
 }
+
 
 ?>

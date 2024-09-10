@@ -70,29 +70,70 @@ if (isset($_GET['disabled'])) {
 $channels = load_json('channels.json');
 $channelsHash = hash('sha256', serialize($channels));
 
+$waitlistChannels = load_json('waitlist.json');
+
+$tempChannels = merge_streamers_with_waitlist($channels, $waitlistChannels);
+
+if ($waitlistChannels !== null || $tempChannels !== null) {
+    $channels = $tempChannels;
+    unlink('waitlist.json');
+} else {
+    log_message("Error: Failed to merge waitlist with channels.");
+    exit;
+}
+
 if ($channels === null) {
     log_message("Error: Failed to load channels.json or the file is empty.");
     exit;
 }
 
 twitchSetup($channels);
-
+    
 // Save updated JSON with broadcaster_id and webhook expiration time
 $channelsNewHash = hash('sha256', serialize($channels));
 if ($channelsNewHash != $channelsHash) save_json('channels.json', $channels);
 
+
 function twitchSetup(&$channels){
-// Register EventSub for each channel using broadcaster_id or getting it if necessary
+    // Собираем все user_id в массив
+    $user_ids = [];
+    foreach ($channels as $channel) {
+        if($channel['platform'] != "twitch") continue;
+        $user_ids[] = $channel['broadcaster_id'];
+    }
+    // Получаем информацию для всех стримеров разом
+    $streams_info = get_stream_info_by_user_ids($user_ids);
+    // Обрабатываем данные для каждого стримера
+    if (!$streams_info) {
+        log_message("No streams are live for the given user IDs.");
+    }
+
+    // Register EventSub for each channel using broadcaster_id or getting it if necessary
     foreach ($channels as $index => $channel) {
         if($channel['platform'] != "twitch") continue;
         $currentTime = time();
 
-        if (isset($channel['broadcaster_id']) && isset($channel['startedAt'])) {
-            $livestreamInfo = get_stream_info_by_user_id($channel['broadcaster_id']);
+        if (isset($channel['broadcaster_id'])) {
+            //$livestreamInfo = get_stream_info_by_user_id($channel['broadcaster_id']);
+            $livestreamInfo = null;
+
+            // Проходим по массиву $streams_info и ищем стрим с необходимым user_id
+            foreach ($streams_info as $stream) {
+                if (isset($stream['user_id']) && $stream['user_id'] == $channel['broadcaster_id']) {
+                    $livestreamInfo = $stream;
+                    //log_message($livestreamInfo['viewer_count']);
+                    break; // Прерываем цикл, если нашли нужный стрим
+                }
+            }
+            //$livestreamInfo = $streams_info[$channel['broadcaster_id']];
+            
             if($livestreamInfo == null){
                 unset($channels[$index]['startedAt']);
                 unset($channels[$index]['viewers']);
             }else {
+                if(isset($livestreamInfo['started_at']) && !isset($channel['startedAt'])){
+                    $channels[$index]['startedAt'] = $livestreamInfo['started_at'];
+                }
                 $channels[$index]['viewers'] = $livestreamInfo['viewer_count'];
             }
         }
@@ -152,5 +193,6 @@ function twitchSetup(&$channels){
             log_message("Failed to register EventSub for {$channel['nickname']}");
         }
     }
+
 }
 ?>
