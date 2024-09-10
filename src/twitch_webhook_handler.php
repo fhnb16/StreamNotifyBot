@@ -68,7 +68,7 @@ function handle_stream_event($event, $type) {
     }
 
     // Собираем все user_id в массив
-    $user_ids = [];
+    /*$user_ids = [];
     foreach ($channels as $channel) {
         if($channel['platform'] != "twitch") continue;
         $user_ids[] = $channel['broadcaster_id'];
@@ -78,10 +78,11 @@ function handle_stream_event($event, $type) {
     // Обрабатываем данные для каждого стримера
     if (!$streams_info) {
         log_message("No streams are live for the given user IDs.");
-    }
+    }*/
 
     foreach ($channels as $id => $channel) {
         if($channel['platform'] != "twitch") continue;
+        if($channel['broadcaster_id'] !== $event['broadcaster_user_id']) continue;
 
         if ($channels[$id]['broadcaster_id'] === $event['broadcaster_user_id']) {
             if ($channels[$id]['name'] !== $event['broadcaster_user_name']) {
@@ -103,16 +104,16 @@ function handle_stream_event($event, $type) {
 
             if($type == "update" || $type == "online"){
                 //$livestreamInfo = $streams_info[$channels[$id]['broadcaster_id']];
-                $livestreamInfo = null;
+                //$livestreamInfo = null;
 
                 // Проходим по массиву $streams_info и ищем стрим с необходимым user_id
-                foreach ($streams_info as $stream) {
+                /*foreach ($streams_info as $stream) {
                     if (isset($stream['user_id']) && $stream['user_id'] == $channel['broadcaster_id']) {
                         $livestreamInfo = $stream;
                         break; // Прерываем цикл, если нашли нужный стрим
                     }
-                }
-                //$livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
+                }*/
+                $livestreamInfo = get_stream_info_by_user_id($channels[$id]['broadcaster_id']);
             }
 
             if($livestreamInfo !== null) {
@@ -152,50 +153,58 @@ function handle_stream_event($event, $type) {
 
             $message = "";
 
+            $previewEnabled = false;
 
             switch($type) {
                 case 'online':
                     $channels[$id]['startedAt'] = $startedAt;
                     $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "online", $event);
+                    $previewEnabled = false;
                     break;
                 case 'update': 
                     $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "update", $event);
+                    if($broadcastingTime != "-1"){
+                        $previewEnabled = true;
+                    } else {
+                        $previewEnabled = false;
+                    }
                     break;
                 case 'offline': 
                     $message = generateStreamMessage($channel, $locales, $livestreamInfo, $broadcastingTime, "offline", $event);
                     unset($channels[$id]['startedAt']);
                     unset($channels[$id]['viewers']);
+                    $previewEnabled = false;
                     break;
             }
 
             // Notify main channel and other chats
-            notify_channels($channels[$id], $message, $type);
+            notify_channels($channels[$id], $message, $type, $previewEnabled);
         }
     }
     save_json('channels.json', $channels);
 }
 
-function notify_channels($channel, $message, $type) {
+function notify_channels($channel, $message, $type, $previewEnabled) {
     log_message("Sending notification to channels for {$channel['nickname']}: {$message}");
     
     if (defined('MAIN_CHAT_ID') && null !== MAIN_CHAT_ID && !empty(MAIN_CHAT_ID)) {
-        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message)); // Notify main chat
+        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message, $previewEnabled)); // Notify main chat
     }
 
     foreach ($channel['notify'] as $chatid => $notify_type) {
         $chat_id = explode(':', $chatid)[0];
         $chat_name = explode(':', $chatid)[1];
         if ($notify_type === 'all') {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
         }
         if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
         }
         if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
         }
         if ($notify_type === 'online' && $type == 'online') {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message));
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
         }
     }
 }

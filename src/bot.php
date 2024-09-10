@@ -72,14 +72,15 @@ $channelsHash = hash('sha256', serialize($channels));
 
 $waitlistChannels = load_json('waitlist.json');
 
-$tempChannels = merge_streamers_with_waitlist($channels, $waitlistChannels);
+if ($waitlistChannels !== null) {
+    $tempChannels = merge_streamers_with_waitlist($channels, $waitlistChannels);
 
-if ($waitlistChannels !== null || $tempChannels !== null) {
-    $channels = $tempChannels;
-    unlink('waitlist.json');
-} else {
-    log_message("Error: Failed to merge waitlist with channels.");
-    exit;
+    if ($waitlistChannels !== null || $tempChannels !== null) {
+        $channels = $tempChannels;
+        unlink('waitlist.json');
+    } else {
+        log_message("Error: Failed to merge waitlist with channels.");
+    }
 }
 
 if ($channels === null) {

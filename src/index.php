@@ -34,7 +34,7 @@ function handle_message($message) {
             break;
 
         case stristr($text,'/help'):
-            send_telegram_message($chatId, "Обратная связь: @stickers_feedback_bot\nДоступные команды:\n/start - Начать\n/help - Помощь\n/list - Список стримеров\n/online - Список стримеров в сети\n/new - добавить стримера\n/add - добавить уведомление");
+            send_telegram_message($chatId, "Обратная связь: @stickers_feedback_bot\nДоступные команды:\n/start - Начать\n/help - Помощь\n/list - Список стримеров\n/online - Список стримеров в сети\n/new - добавить стримера\n/edit - редактировать уведомления");
             break;
 
         case stristr($text,'/online'):
@@ -57,7 +57,7 @@ function handle_message($message) {
             send_telegram_message($chatId, $responseText);
             break;
 
-        case stristr($text,'/add'):
+        case stristr($text,'/edit'):
             if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             break;
 
@@ -163,7 +163,11 @@ function handle_inline_query($inlineQuery) {
     $queryText = $inlineQuery['query'];
 
     // Получаем список стримеров (по запросу или все)
-    $streamers = get_streamers_online_list($queryText);
+    if($queryText == "offline") {
+        $streamers = get_streamers_offline_list();
+    } else {
+        $streamers = get_streamers_online_list($queryText);
+    }
 
     // Формируем результаты для показа в inline режиме
     $results = [];
@@ -176,11 +180,18 @@ function handle_inline_query($inlineQuery) {
         }
 
         $streamTime = broadcastCalculatedTime($streamer['startedAt'], time('c'));
+
+        $message = "";
     
-        $message = '<a href="https://static-cdn.jtvnw.net/previews-ttv/live_user_' . $streamer['nickname'] . '-1920x1080.jpg?v=' . time().'">&#8205;</a>'.
-        '{Name} сейчас в сети.{NewLine}'.
-        'Категория: <b>{Category}</b>{NewLine}Название: {Title}{NewLine}Стрим идет: {Time}{NewLine}'.
-        'Зрителей: {Viewers}';
+        if($queryText != "offline"){
+            $message .= '<a href="https://static-cdn.jtvnw.net/previews-ttv/live_user_' . $streamer['nickname'] . '-1920x1080.jpg?v=' . time().'">&#8205;</a>';
+        }
+        $message .= $queryText == "offline" ? '{Name} сейчас оффлайн.{NewLine}' : '{Name} сейчас в сети.{NewLine}';
+        if($queryText != "offline"){
+            $message .= 'Категория: <b>{Category}</b>{NewLine}Название: {Title}{NewLine}'.
+            'Стрим идет: {Time}{NewLine}'.
+            'Зрителей: {Viewers}';
+        }
 
         $replaceArray = [
             '{Name}' => "<a href='{$broadcastPlatform}{$streamer['nickname']}'><b><u>{$streamer['name']}</u></b></a>",
@@ -200,7 +211,7 @@ function handle_inline_query($inlineQuery) {
                 'parse_mode' => "HTML",
                 'message_text' => $responseMessage,
             ],
-            'description' => "Online, {$streamer['viewers']} viewers, {$streamer['category']}"
+            'description' => $queryText == "offline" ? "Offline [{$streamer['platform']}]" : "Online [{$streamer['platform']}], {$streamer['viewers']} viewers, {$streamer['category']}"
         ];
     }
 
@@ -263,6 +274,35 @@ function get_streamers_online_list($filter = null) {
     usort($streamers, function($a, $b) {
         return $b['viewers'] <=> $a['viewers'];
     });
+
+    // Возвращаем массив со всеми данными о стримерах
+    return $streamers;
+}
+
+/**
+ * Получение списка стримеров из файла channels.json с фильтрацией и сортировкой по viewers
+ */
+function get_streamers_offline_list($filter = null) {
+    // Load channels list from JSON file
+    $channels = load_json('channels.json');
+
+    // Проверяем, успешно ли декодированы данные
+    if ($channels === null) {
+        log_message("Error: Ошибка при чтении JSON данных.");
+        return [];
+    }
+
+    // Фильтруем стримеров, у которых есть параметр viewers
+    $streamers = array_filter($channels, function($channel) {
+        return !isset($channel['viewers']);
+    });
+
+    // Если передан фильтр, фильтруем стримеров по запросу
+    if ($filter) {
+        $streamers = array_filter($streamers, function($streamer) use ($filter) {
+            return stripos($streamer['name'], $filter) !== false; // Фильтр по имени стримера
+        });
+    }
 
     // Возвращаем массив со всеми данными о стримерах
     return $streamers;

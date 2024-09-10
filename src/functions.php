@@ -31,11 +31,17 @@ function register_twitch_eventsub($broadcaster_id, $event_type = "stream.online"
 // Send Telegram message with optional inline buttons
 function send_telegram_message($chat_id, $message, $buttons = null) {
     $url = TELEGRAM_API_URL . '/sendMessage';
+
     $getData = [
         'chat_id' => $chat_id,
         'parse_mode' => "HTML",
         'text' => $message
     ];
+
+    // Если передан параметр отключения превью для ссылок
+    if ($buttons !== null && is_bool($buttons)) {
+        $getData += ['disable_web_page_preview' => !$buttons];
+    }
 
     // Если кнопки переданы, добавляем их в параметры запроса
     if ($buttons !== null && is_array($buttons)) {
@@ -607,7 +613,7 @@ function get_stream_info_by_user_ids(array $user_ids) {
         } while ($pagination);
     }
 
-    log_message("Stream information for user_ids: " . json_encode($streams));
+    log_message("Stream information for user_ids: " . json_encode($streams, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
     return $streams; // Возвращаем массив данных о стримах
 }

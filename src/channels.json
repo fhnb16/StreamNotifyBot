@@ -21,14 +21,13 @@
         "platform": "twitch",
         "notify": {
             "-1001647320059:Чат Воробьев": "live",
-            "-1002126986481:Чат БКТ": "live",
             "-1002086910133:https://t.me/GilticusOfficial": "all",
             "-1002136494074:https://t.me/GilticusWild": "all"
         },
         "strings": {
             "livestream_end": "{Name} Завершила стрим ‍😞{NewLine}Длительность {Time}",
-            "livestream_update_title": "✨ Изменила название на {Title}.{NewLine}",
-            "livestream_update_category": " Сменила категорию на {Category} 🎮{NewLine}"
+            "livestream_update_title": "✨ Изменила название на {Title}.",
+            "livestream_update_category": "Сменила категорию на {Category} 🎮"
         }
     },
     {
