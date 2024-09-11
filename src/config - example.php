@@ -4,6 +4,10 @@ define('TWITCH_CLIENT_ID', '');
 define('TWITCH_SECRET', '');
 define('TWITCH_CALLBACK_URL', 'https://example.com/twitch_webhook_handler.php'); // Your webhook handler URL
 
+// Youtube Data API configuration
+define('YOUTUBE_API_KEY', '');
+define('YOUTUBE_CALLBACK_URL', 'https://example.com/youtube_webhook_handler.php'); // Your webhook handler URL
+
 // Telegram API configuration
 define('ADMIN_ID', ''); // Main channel for all notifications (optional) example: 1234567890
 define('TELEGRAM_BOT_TOKEN', '');

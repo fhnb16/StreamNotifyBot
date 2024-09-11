@@ -108,6 +108,7 @@ function add_streamer_to_waitlist($newStreamer){
     $tempChannels = load_json('waitlist.json');
     $tempChannels[] = $newStreamer;
     save_json('waitlist.json', $tempChannels);
+    log_message("Added to waitlist.");
 
 }
 
@@ -128,13 +129,50 @@ function merge_streamers_with_waitlist($streamers, $waitlist) {
 
         // Если ключ не найден в существующих стримерах, добавляем нового стримера
         if (!isset($existingStreamers[$key])) {
-            if(get_broadcaster_id($streamer['nickname']) !== null){
-                $streamers[] = $streamer;
+            switch($streamer['platform']){
+                case 'twitch':
+                    if(get_broadcaster_id($streamer['nickname']) !== null){
+                        log_message("Waitlist item [youtube]" . $streamer['nickname'] . " added to channels list.");
+                        $streamers[] = $streamer;
+                    }
+                break;
+                case 'youtube':
+                    if(get_channel_id_by_username($streamer['nickname']) !== null){
+                        log_message("Waitlist item [youtube]" . $streamer['nickname'] . " added to channels list.");
+                        $streamers[] = $streamer;
+                    }
+                break;
             }
         }
     }
 
     return $streamers;
+}
+
+/**
+ * Объединение двух массивов по ключу `broadcaster_id`.
+ *
+ * @param array $array1 Первый массив с данными стримеров.
+ * @param array $array2 Второй массив с данными для объединения (например, `webhook_expire_at`).
+ * @return array Массив с добавленными данными.
+ */
+function merge_webhook_with_channels($array1, $array2) {
+    // Перебираем первый массив
+    foreach ($array1 as &$item1) {
+        // Ищем соответствующий элемент в массиве $array2
+        foreach ($array2 as $item2) {
+            // Если broadcaster_id совпадает, добавляем данные
+            if ($item1['broadcaster_id'] === $item2['broadcaster_id']) {
+                // Добавляем или обновляем нужное поле (например, webhook_expires_at)
+                $item1['webhook_expires_at'] = $item2['webhook_expires_at'];
+                // Если нужно добавить больше полей, можно делать это здесь
+                // $item1['some_other_field'] = $item2['some_other_field'];
+                break; // Если нашли совпадение, можно выйти из цикла
+            }
+        }
+    }
+
+    return $array1;
 }
 
 // Функция для получения и кэширования токена
@@ -640,7 +678,7 @@ function replaceMultipleStrings($sourceString, $replaceArray) {
 }
 
 // Основная функция для формирования сообщения
-function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime, $status, $event) {
+function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime, $status, $event = null) {
 
     $category = $lang = $title = $viewers = "";
 
@@ -678,28 +716,43 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     if (isset($channel['strings'])) {
         $strings = array_merge($strings, $channel['strings']);
     }
+    
+    $previewUrlYoutube = replaceMultipleStrings('https://i.ytimg.com/vi/{videoId}/maxresdefault_live.jpg?v={timestamp}', [
+        '{videoId}' => $channel['url'],
+        '{timestamp}' => time()
+    ]);
+    
+    $previewUrlTwitch = replaceMultipleStrings('https://static-cdn.jtvnw.net/previews-ttv/live_user_{username}-{width}x{height}.jpg?v={timestamp}', [
+        '{width}' => '1920',
+        '{height}' => '1080',
+        '{username}' => $channel['nickname'],
+        '{timestamp}' => time()
+    ]);
 
-    $broadcastPlatform = "";
+    $broadcastPlatform = $previewUrl = $streamerName = "";
     switch($channel['platform']){
         case 'twitch': $broadcastPlatform = "https://twitch.tv/";
-        break;
+            $previewUrl = $previewUrlTwitch;
+            $streamerName = $event['broadcaster_user_name'];
+            break;
+        case 'youtube': $broadcastPlatform = "https://youtube.com/";
+            $previewUrl = $previewUrlYoutube;
+            $streamerName = str_replace('@', '', $livestreamInfo['name']);
+            break;
     }
-    
-    $previewUrl = replaceMultipleStrings($livestreamInfo['thumbnail_url'], [
-        '{width}' => '1920',
-        '{height}' => '1080'
-    ]);
 
     // Подготовка переменных для замены
 
     $replaceArray = [
-        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '"><b><u>' . $event['broadcaster_user_name'] . '</u></b></a>',
+        '{Name}' => '<a href="' . $broadcastPlatform . $channel['nickname'] . '"><b><u>' . $streamerName . '</u></b></a>',
         '{Category}' => "<b>".$category."</b>",
         '{Title}' => "<i>".$title."</i>",
-        '{Viewers}' => "<u>".$viewers."</u>",
+        '{Viewers}' => "~ <u>".$viewers."</u>",
         '{Time}' => "<b>".$StreamTime."</b>",
         '{NewLine}' => PHP_EOL
     ];
+
+    $liveStreamUrlYoutube = "https://www.youtube.com/watch?v=";
 
     $message = '';
 
@@ -707,13 +760,19 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     switch ($status) {
         case 'online':
             $message = replaceMultipleStrings($strings['livestream_start'], $replaceArray);
+            if(isset($channel['url'])){
+                $message .= PHP_EOL . "<a href='" . $liveStreamUrlYoutube . $channel['url'] . "'><u>Ссылка на стрим</u></a>";
+            }
+            $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $channel['nickname']) . " #".$channel['platform'] . ' #'.$status;
             break;
 
         case 'offline':
-            $message = replaceMultipleStrings($strings['livestream_end'], $replaceArray);
+            $message = '<a href="' . $previewUrl . '">&#8205;</a>';
+            $message .= replaceMultipleStrings($strings['livestream_end'], $replaceArray);
             if ($viewers != "-1") {
                 $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_viewers'], $replaceArray);
             }
+            $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $channel['nickname']) . " #".$channel['platform'] . ' #'.$status;
             break;
 
         case 'update':
@@ -733,14 +792,204 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
                 if ($StreamTime !== "-1") {
                     $message .= PHP_EOL . replaceMultipleStrings($strings['livestream_duration'], $replaceArray);
                 }
+                if(isset($channel['url'])){
+                    $message .= PHP_EOL . "<a href='" . $liveStreamUrlYoutube . $channel['url'] . "'><u>Ссылка на стрим</u></a>";
+                }
             }
-            
+            $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $channel['nickname']) . " #".$channel['platform'] . ' #'.$status;
 
             break;
     }
 
     return $message;
 }
+
+function notify_channels($channel, $message, $type, $previewEnabled) {
+    log_message("Sending notification to channels for {$channel['nickname']}: {$message}");
+    
+    if (defined('MAIN_CHAT_ID') && null !== MAIN_CHAT_ID && !empty(MAIN_CHAT_ID)) {
+        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message, $previewEnabled)); // Notify main chat
+    }
+
+    foreach ($channel['notify'] as $chatid => $notify_type) {
+        $chat_id = explode(':', $chatid)[0];
+        $chat_name = explode(':', $chatid)[1];
+        if ($notify_type === 'all') {
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+        }
+        if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+        }
+        if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+        }
+        if ($notify_type === 'online' && $type == 'online') {
+            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+        }
+    }
+}
+
+/**
+ * Отписка от всех push уведомлений о YouTube
+ * 
+ * @param array $channels Массив с информацией о каналах (темах), от которых нужно отписаться
+ */
+function unsubscribe_from_all_youtube_push_notifications($channels) {
+    $hubUrl = 'https://pubsubhubbub.appspot.com/subscribe'; // URL PubSubHubBub для управления подписками
+
+    foreach ($channels as $channel) {
+        // Формируем параметры для отписки
+        $postData = [
+            'hub.mode' => 'unsubscribe',
+            'hub.topic' => 'https://www.youtube.com/xml/feeds/videos.xml?channel_id=' . $channel['channel_id'], // Тема (канал YouTube)
+            'hub.callback' => YOUTUBE_CALLBACK_URL, // URL вашего callback обработчика
+        ];
+
+        // Отправляем запрос на отписку
+        $response = make_post_request($hubUrl, $postData);
+
+        // Логируем результат
+        if ($response) {
+            log_message("Successfully unsubscribed from channel ID: " . $channel['channel_id']);
+        } else {
+            log_message("Failed to unsubscribe from channel ID: " . $channel['channel_id']);
+        }
+    }
+}
+
+// youtube livestream info
+function get_youtube_stream_info($username, &$broadcaster_id = null) {
+
+    $channelId = null;
+
+    if($broadcaster_id == null) {
+        // 1. Получаем идентификатор канала по имени пользователя
+        $channelId = get_channel_id_by_username($username);
+    } else {
+        $channelId = $broadcaster_id;
+    }
+    
+    
+    if (!$channelId) {
+        log_message("Channel not found.");
+        return null;
+    }
+
+    // 2. Получаем информацию о текущей трансляции
+    $liveStreamInfo = get_live_stream_info_by_channel_id($channelId);
+    
+    if (!$liveStreamInfo) {
+        log_message("No active live stream found.");
+        return null;
+    }
+    
+    return $liveStreamInfo;  // Возвращаем информацию о трансляции
+}
+
+// Вспомогательная функция для получения channelId по username
+function get_channel_id_by_username($username) {
+    $url = "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&forHandle=" . urlencode($username) . "&key=" . YOUTUBE_API_KEY;
+    
+    $response = file_get_contents($url);
+    $data = json_decode($response, true);
+    log_message("Get id by username respone: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    
+    if (isset($data['items'][0])) {
+        return $data['items'][0]['id'];  // Возвращаем идентификатор канала
+    }
+
+    log_message("Can't get id by nickname.");
+    
+    return null;
+}
+
+// Вспомогательная функция для получения информации о текущей трансляции по channelId
+function get_live_stream_info_by_channel_id($channelId) {
+    $url = "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=" . urlencode($channelId) . "&type=video&eventType=live&key=" . YOUTUBE_API_KEY;
+    
+    $response = file_get_contents($url);
+    $data = json_decode($response, true);
+    log_message("Get stream info by id respone: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    
+    if (isset($data['items'][0])) {
+        $videoId = $data['items'][0]['id']['videoId'];
+        $streamDetails = get_stream_details($videoId);
+        return $streamDetails;  // Возвращаем информацию о трансляции
+    }
+    
+    log_message("Can't stream info.");
+    return null;
+}
+
+// Вспомогательная функция для получения деталей трансляции по videoId
+function get_stream_details($videoId) {
+    $url = "https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=" . urlencode($videoId) . "&key=" . YOUTUBE_API_KEY;
+    
+    $response = file_get_contents($url);
+    $data = json_decode($response, true);
+    log_message("Get livestream details response: ". json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    
+    if (isset($data['items'][0])) {
+        $snippet = $data['items'][0]['snippet'];
+        $liveDetails = $data['items'][0]['liveStreamingDetails'];
+
+        // Получаем нужную информацию
+        $streamInfo = [
+            'username' => $snippet['channelTitle'],  // Имя пользователя (канала)
+            'title' => $snippet['title'],  // Название трансляции
+            'category' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
+            'viewers' => isset($liveDetails['concurrentViewers']) ? $liveDetails['concurrentViewers'] : '-1',  // Количество зрителей
+            'start_time' => $liveDetails['actualStartTime'],  // Время начала трансляции
+            'url' => $videoId,  // Ссылка на трансляцию
+            'country' => isset($liveDetails['country']) ? $liveDetails['concurrentViewers'] : null
+        ];
+        
+        return $streamInfo;
+    }
+    
+    log_message("Can't stream details.");
+    return null;
+}
+
+function subscribe_to_youtube_push_notifications($user_ids) {
+    $callback_url = YOUTUBE_CALLBACK_URL;
+    $hub_url = 'https://pubsubhubbub.appspot.com/subscribe';
+    $tempArray = [];
+    $lease_seconds = 432000; // 5 дней = 432000 секунд
+    $current_time = time();
+    $expiration_date = date('c', $current_time + $lease_seconds); // Дата истечения подписки (текущая дата + 5 дней)
+
+    foreach ($user_ids as $user_id) {
+        $topic_url = "https://www.youtube.com/xml/feeds/videos.xml?channel_id={$user_id}";
+
+        // Параметры для подписки
+        $postData = [
+            'hub.callback' => $callback_url,
+            'hub.mode' => 'subscribe',
+            'hub.topic' => $topic_url,
+            'hub.lease_seconds' => $lease_seconds
+        ];
+
+        // Выполняем запрос на подписку
+        $response = make_post_request($hub_url, $postData);
+        
+        // Логируем успешную подписку
+        log_message("Subscribed to YouTube push notifications for user_id: {$user_id}, expires on: {$expiration_date}");
+        $tempArray[] = Array("broadcaster_id"=>$user_id, "webhook_expires_at"=>$expiration_date, "platform"=>"youtube");
+        /*if ($response) {
+            log_message("Subscribed to YouTube push notifications for user_id: {$user_id}, expires on: {$expiration_date}");
+            $tempArray[] = Array("broadcaster_id"=>$user_id, "webhook_expires_at"=>$expiration_date);
+        } else {
+            log_message("Failed to subscribe for user_id: {$user_id}");
+        }*/
+    }
+
+    if(count($tempArray) == 0) return null;
+
+    // Возвращаем дату истечения подписки для информации
+    return $tempArray;
+}
+
 
 
 ?>

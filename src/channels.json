@@ -20,6 +20,7 @@
         "name": "Gilticus",
         "platform": "twitch",
         "notify": {
+            "-1002126986481:Чат БКТ": "live",
             "-1001647320059:Чат Воробьев": "live",
             "-1002086910133:https://t.me/GilticusOfficial": "all",
             "-1002136494074:https://t.me/GilticusWild": "all"
@@ -36,8 +37,7 @@
         "platform": "twitch",
         "notify": {
             "-1001647320059:Чат Воробьев": "updates",
-            "-1001501973723:https://t.me/dmitrytomato_streams": "live",
-            "-1002086910133:https://t.me/GilticusOfficial": "all",
+            "-1001501973723:https://t.me/dmitrytomato_streams": "online",
             "-1002136494074:https://t.me/GilticusWild": "all"
         }
     },
@@ -47,7 +47,7 @@
         "platform": "twitch",
         "notify": {
             "-1001751736036:Чат Donique https://t.me/doniquechat": "updates",
-            "-1001738977757:https://t.me/lildonique": "live"
+            "-1001738977757:https://t.me/lildonique": "online"
         }
     },
     {
@@ -160,7 +160,7 @@
         "platform": "twitch",
         "notify": {
             "-1001939060717:Чат irinatuk": "updates",
-            "-1001843403165:https://t.me/IrinaTukPlay": "live"
+            "-1001843403165:https://t.me/IrinaTukPlay": "online"
         }
     },
     {
@@ -181,6 +181,14 @@
         "platform": "twitch",
         "notify": {
             "-1002126986481:Чат БКТ": "live"
+        }
+    },
+    {
+        "name": "davydov_88",
+        "nickname": "davydov_88",
+        "platform": "twitch",
+        "notify": {
+            "-1002496813968:https://t.me/maddysonOnline": "all"
         }
     }
 ]

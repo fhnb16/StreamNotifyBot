@@ -167,6 +167,7 @@ function handle_inline_query($inlineQuery) {
         $streamers = get_streamers_offline_list();
     } else {
         $streamers = get_streamers_online_list($queryText);
+        //$streamers += get_streamers_offline_list($queryText);
     }
 
     // Формируем результаты для показа в inline режиме
@@ -176,6 +177,7 @@ function handle_inline_query($inlineQuery) {
         $broadcastPlatform = "";
         switch($streamer['platform']){
             case 'twitch': $broadcastPlatform = "https://twitch.tv/";
+            case 'youtube': $broadcastPlatform = "https://youtube.com/";
             break;
         }
 
@@ -183,22 +185,26 @@ function handle_inline_query($inlineQuery) {
 
         $message = "";
     
-        if($queryText != "offline"){
+        if(isset($streamer['viewers'])){
             $message .= '<a href="https://static-cdn.jtvnw.net/previews-ttv/live_user_' . $streamer['nickname'] . '-1920x1080.jpg?v=' . time().'">&#8205;</a>';
         }
-        $message .= $queryText == "offline" ? '{Name} сейчас оффлайн.{NewLine}' : '{Name} сейчас в сети.{NewLine}';
-        if($queryText != "offline"){
+        $message .= !isset($streamer['viewers']) ? '🔴 {Name} сейчас оффлайн.' : '🟢 {Name} сейчас в сети.';
+        if(isset($streamer['viewers'])){
+            $message .= PHP_EOL;
             $message .= 'Категория: <b>{Category}</b>{NewLine}Название: {Title}{NewLine}'.
             'Стрим идет: {Time}{NewLine}'.
             'Зрителей: {Viewers}';
         }
+        $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $streamer['nickname']) . " #{platform} #{status}";
 
         $replaceArray = [
             '{Name}' => "<a href='{$broadcastPlatform}{$streamer['nickname']}'><b><u>{$streamer['name']}</u></b></a>",
             '{Category}' => "<b>".$streamer['category']."</b>",
             '{Title}' => "<i>".$streamer['title']."</i>",
-            '{Viewers}' => "<u>".$streamer['viewers']."</u>",
+            '{Viewers}' => "~ <u>".$streamer['viewers']."</u>",
             '{Time}' => "<b>".$streamTime."</b>",
+            '{status}' => !isset($streamer['viewers']) ? 'offline' : 'online',
+            '{platform}' => $streamer['platform'],
             '{NewLine}' => PHP_EOL
         ];
         $responseMessage = replaceMultipleStrings($message, $replaceArray);
@@ -211,7 +217,7 @@ function handle_inline_query($inlineQuery) {
                 'parse_mode' => "HTML",
                 'message_text' => $responseMessage,
             ],
-            'description' => $queryText == "offline" ? "Offline [{$streamer['platform']}]" : "Online [{$streamer['platform']}], {$streamer['viewers']} viewers, {$streamer['category']}"
+            'description' => !isset($streamer['viewers']) ? "🔴 [{$streamer['platform']}]" : "🟢 [{$streamer['platform']}], ~{$streamer['viewers']} viewers, {$streamer['category']}"
         ];
     }
 
@@ -292,7 +298,7 @@ function get_streamers_offline_list($filter = null) {
         return [];
     }
 
-    // Фильтруем стримеров, у которых есть параметр viewers
+    // Фильтруем стримеров, у которых нет параметр viewers
     $streamers = array_filter($channels, function($channel) {
         return !isset($channel['viewers']);
     });

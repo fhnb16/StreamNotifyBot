@@ -183,29 +183,4 @@ function handle_stream_event($event, $type) {
     }
     save_json('channels.json', $channels);
 }
-
-function notify_channels($channel, $message, $type, $previewEnabled) {
-    log_message("Sending notification to channels for {$channel['nickname']}: {$message}");
-    
-    if (defined('MAIN_CHAT_ID') && null !== MAIN_CHAT_ID && !empty(MAIN_CHAT_ID)) {
-        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message, $previewEnabled)); // Notify main chat
-    }
-
-    foreach ($channel['notify'] as $chatid => $notify_type) {
-        $chat_id = explode(':', $chatid)[0];
-        $chat_name = explode(':', $chatid)[1];
-        if ($notify_type === 'all') {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-        }
-        if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-        }
-        if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-        }
-        if ($notify_type === 'online' && $type == 'online') {
-            log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-        }
-    }
-}
 ?>

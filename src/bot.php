@@ -66,6 +66,18 @@ if (isset($_GET['disabled'])) {
     exit;
 }
 
+// Clean up all subscriptions
+if (isset($_GET['youtube_clean'])) {
+    $user_ids = [];
+    foreach ($channels as $id => $channel) {
+        if($channel['platform'] != "youtube") continue;
+        $user_ids[] = ["channel_id" => $channel['broadcaster_id']];
+    }
+    unsubscribe_from_all_youtube_push_notifications($user_ids);
+    echo "Disabled subscriptions have been cancelled.";
+    exit;
+}
+
 // Load channels list from JSON file
 $channels = load_json('channels.json');
 $channelsHash = hash('sha256', serialize($channels));
@@ -78,6 +90,7 @@ if ($waitlistChannels !== null) {
     if ($waitlistChannels !== null || $tempChannels !== null) {
         $channels = $tempChannels;
         unlink('waitlist.json');
+        log_message("Added " . count($waitlistChannels) . ' items to channels.json');
     } else {
         log_message("Error: Failed to merge waitlist with channels.");
     }
@@ -89,17 +102,127 @@ if ($channels === null) {
 }
 
 twitchSetup($channels);
+youtubeSetup($channels);
     
 // Save updated JSON with broadcaster_id and webhook expiration time
 $channelsNewHash = hash('sha256', serialize($channels));
 if ($channelsNewHash != $channelsHash) save_json('channels.json', $channels);
 
+function youtubeSetup(&$channels){
+
+    $counter = 0;
+
+    $user_ids = [];
+
+    foreach ($channels as $id => $channel) {
+        if($channel['platform'] != "youtube") continue;
+
+        $currentTime = time();
+
+        $broadcaster_nickname = $channel['nickname'];
+
+        $broadcaster_id = isset($channel['broadcaster_id']) ? $channel['broadcaster_id'] : get_channel_id_by_username($broadcaster_nickname);
+
+        $channels[$id]['broadcaster_id'] = $broadcaster_id;
+
+        // Check if webhook is registered and has not expired
+        if (isset($channel['webhook_expires_at']) && isset($channel['broadcaster_id'])) {
+            // Attempt to parse the timestamp in both ISO 8601 and Y-m-d H:i:s formats
+            $webhookExpiresAt = strtotime($channel['webhook_expires_at']);
+            if ($webhookExpiresAt === false) {
+                $webhookExpiresAt = strtotime(date('Y-m-d H:i:s', strtotime($channel['webhook_expires_at'])));
+            }
+
+            if ($currentTime < $webhookExpiresAt) {
+                if(!isset($_GET['cron'])) log_message("Webhook still active for {$channel['nickname']}. Skipping.");
+                $counter++;
+                continue;
+            }
+        }
+
+        $user_ids[] = $channel['broadcaster_id'];
+
+        //if(isset($_GET['cron']) && $_GET['cron'] != "youtube") continue;
+
+
+/*
+        $liveStreamInfo = get_youtube_stream_info($broadcaster_nickname, $broadcaster_id);
+
+        if($liveStreamInfo == null) {
+            log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
+            if(isset($channels[$id]['viewers'])){
+                // Load locale strings list from JSON file
+                $locales = load_json('strings.json');
+                $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], date('c'));
+                $message = generateStreamMessage($channel, $locales, $liveStreamInfo, $broadcastingTime, "offline");
+                unset($channels[$id]['startedAt']);
+                unset($channels[$id]['url']);
+                unset($channels[$id]['viewers']);
+                notify_channels($channels[$id], $message, 'offline', true);
+            }
+            $counter++;
+            continue;
+        }
+        
+        $notifyAboutOnline = false;
+        $locales = null;
+
+        if(!isset($channels[$id]['viewers']) && $liveStreamInfo['viewers']){
+            $notifyAboutOnline = true;
+            // Load locale strings list from JSON file
+            $locales = load_json('strings.json');
+        }
+
+        $channels[$id]['name'] = $liveStreamInfo['username'];
+        $channels[$id]['broadcaster_id'] = $broadcaster_id;
+        $channels[$id]['title'] = $liveStreamInfo['title'];
+        $channels[$id]['category'] = $liveStreamInfo['category'];
+        $channels[$id]['viewers'] = $liveStreamInfo['viewers'];
+        $channels[$id]['startedAt'] = $liveStreamInfo['start_time'];
+        $channels[$id]['url'] = $liveStreamInfo['url'];
+        $channels[$id]['language'] = strtolower($liveStreamInfo['country']);
+
+
+        $broadcastingTime = broadcastCalculatedTime($liveStreamInfo['start_time'], date('c'));
+
+        if($notifyAboutOnline){
+
+            $message = generateStreamMessage($channel, $locales, $liveStreamInfo, $broadcastingTime, "online");
+    
+            notify_channels($channels[$id], $message, 'online', true);
+
+        }
+*/
+
+        $counter++;
+    }
+
+    $youtubePushSubscribe = subscribe_to_youtube_push_notifications($user_ids);
+    
+    if($youtubePushSubscribe !== null){
+        /*foreach($youtubePushSubscribe as $item){
+            if($channels[$item])
+            $channels[$item["broadcaster_id"]]['webhook_expires_at'] = $item["webhook_expires_at"];
+            log_message($channels[$item["broadcaster_id"]]['name'] . " [youtube] subscribed to webhooks.");
+        }*/
+
+        $channels = merge_webhook_with_channels($channels, $youtubePushSubscribe);
+    }
+
+    log_message($counter . " [youtube] items processed.");
+
+
+}
 
 function twitchSetup(&$channels){
+    if(isset($_GET['cron']) && $_GET['cron'] == "youtube") return;
+    
+    $counter = 0;
     // Собираем все user_id в массив
     $user_ids = [];
     foreach ($channels as $channel) {
         if($channel['platform'] != "twitch") continue;
+        if(!isset($channel['broadcaster_id'])) continue;
         $user_ids[] = $channel['broadcaster_id'];
     }
     // Получаем информацию для всех стримеров разом
@@ -149,12 +272,13 @@ function twitchSetup(&$channels){
 
             if ($currentTime < $webhookExpiresAt) {
                 if(!isset($_GET['cron'])) log_message("Webhook still active for {$channel['nickname']}. Skipping.");
+                $counter++;
                 continue;
             }
         }
 
         // Get broadcaster_id if not present
-        if (!isset($channel['broadcaster_id'])) {
+        if (!isset($channel['broadcaster_id']) && $channel['platform'] == "twitch") {
             $broadcaster_id = get_broadcaster_id($channel['nickname']);
             
             if ($broadcaster_id) {
@@ -163,6 +287,7 @@ function twitchSetup(&$channels){
                 log_message("Broadcaster ID for {$channel['nickname']} is {$broadcaster_id}");
             } else {
                 log_message("Failed to get broadcaster ID for {$channel['nickname']}. Skipping.");
+                $counter++;
                 continue;
             }
         } else {
@@ -193,7 +318,11 @@ function twitchSetup(&$channels){
         } else {
             log_message("Failed to register EventSub for {$channel['nickname']}");
         }
+
+        $counter++;
     }
+
+    log_message($counter . " [twitch] items processed.");
 
 }
 ?>
