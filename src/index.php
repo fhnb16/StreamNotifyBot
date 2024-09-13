@@ -30,11 +30,11 @@ function handle_message($message) {
 
     switch (true) {
         case stristr($text,'/start'):
-            send_telegram_message($chatId, "Привет! Я бот для мониторинга стримеров. Используйте /help, чтобы получить список команд.\nОбратная связь: @stickers_feedback_bot");
+            send_telegram_message($chatId, "Привет! Я бот для мониторинга стримеров.\nНажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах.\nИспользуйте /help, чтобы получить список команд.\nОбратная связь: @stickers_feedback_bot");
             break;
 
         case stristr($text,'/help'):
-            send_telegram_message($chatId, "Обратная связь: @stickers_feedback_bot\nДоступные команды:\n/start - Начать\n/help - Помощь\n/list - Список стримеров\n/online - Список стримеров в сети\n/new - добавить стримера\n/edit - редактировать уведомления");
+            send_telegram_message($chatId, "Нажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах или отписаться от них.\n\nОбратная связь: @stickers_feedback_bot\n\nДоступные команды:\n/start - Начать\n/help - Помощь\n/new - добавить стримера (только для админа)\n\nДля предложения стримеров пишите @stickers_feedback_bot\n\nДоступен inline-режим, напишите <code>@currentlyLive_bot </code> в любом чате и выберите стримера.");
             break;
 
         case stristr($text,'/online'):
@@ -60,6 +60,13 @@ function handle_message($message) {
 
         case stristr($text,'/edit'):
             if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
+            $buttons = [
+                [
+                    ['text' => 'Редактировать', 'callback_data' => 'editNotifications'],
+                    ['text' => 'Отменить', 'callback_data' => 'buttons_remove']
+                ]
+            ];
+            send_telegram_message($chatId, "Вы можете изменить уведомления:", $buttons);
             break;
 
         case stristr($text,'/new'):
@@ -107,6 +114,19 @@ function handle_callback($callback) {
     switch ($callbackData) {
         case 'buttons_remove':
             remove_buttons_from_message($chatId, $messageId);
+            break;
+        case 'editNotifications':
+            $userId = $callback['from']['id'];
+            $webAppUrl = TELEGRAM_NOTIFY_EDITOR_URL . "?user_id=" . $userId;
+            
+            $response = [
+                'method' => 'answerCallbackQuery',
+                'callback_query_id' => $callback['id'],
+                'url' => $webAppUrl
+            ];
+        
+            // Отправляем ссылку на WebApp
+            send_telegram_message($chatId, "Click the link to edit notifications: " . $webAppUrl);
             break;
 
         case 'add_streamer':
