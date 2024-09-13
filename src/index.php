@@ -39,7 +39,7 @@ function handle_message($message) {
 
         case stristr($text,'/online'):
             $streamers = get_streamers_online_list();
-            $responseText = "Список стримеров:\n";
+            $responseText = "Список стримеров в сети:\n";
             foreach($streamers as $streamer) {
                 $responseText .= $streamer['name'];
                 $responseText .= ' ['.$streamer['platform'].']' . PHP_EOL;
@@ -48,6 +48,7 @@ function handle_message($message) {
             break;
 
         case stristr($text,'/list'):
+            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             $streamers = load_json('channels.json');
             $responseText = "Список стримеров:\n";
             foreach($streamers as $streamer) {
@@ -174,11 +175,42 @@ function handle_inline_query($inlineQuery) {
     $results = [];
     foreach ($streamers as $streamer) {
 
-        $broadcastPlatform = "";
+        $youtubeThumb = 'https://i.ytimg.com/vi/{videoId}/{imgSize}_live.jpg?v={timestamp}';
+
+        $previewUrlYoutube = replaceMultipleStrings($youtubeThumb, [
+            '{videoId}' => $streamer['url'],
+            '{timestamp}' => time(),
+            '{imgSize}' => 'maxresdefault'
+        ]);
+
+        $previewUrlYoutubeSmol = replaceMultipleStrings($youtubeThumb, [
+            '{videoId}' => $streamer['url'],
+            '{timestamp}' => time(),
+            '{imgSize}' => 'default'
+        ]);
+
+        $twitchThumb = 'https://static-cdn.jtvnw.net/previews-ttv/live_user_{username}-{width}x{height}.jpg?v={timestamp}';
+        
+        $previewUrlTwitch = replaceMultipleStrings($twitchThumb, [
+            '{width}' => '1920',
+            '{height}' => '1080',
+            '{username}' => $streamer['nickname'],
+            '{timestamp}' => time()
+        ]);
+        
+        $previewUrlTwitchSmol = replaceMultipleStrings($twitchThumb, [
+            '{width}' => '120',
+            '{height}' => '90',
+            '{username}' => $streamer['nickname'],
+            '{timestamp}' => time()
+        ]);
+
+        $broadcastPlatform = $previewUrl = $previewUrlSmol = "";
         switch($streamer['platform']){
-            case 'twitch': $broadcastPlatform = "https://twitch.tv/";
-            case 'youtube': $broadcastPlatform = "https://youtube.com/";
-            break;
+            case 'twitch': $broadcastPlatform = "https://twitch.tv/"; $previewUrl = $previewUrlTwitch; $previewUrlSmol = $previewUrlTwitchSmol;
+                break;
+            case 'youtube': $broadcastPlatform = "https://youtube.com/"; $previewUrl = $previewUrlYoutube; $previewUrlSmol = $previewUrlYoutubeSmol;
+                break;
         }
 
         $streamTime = broadcastCalculatedTime($streamer['startedAt'], time('c'));
@@ -186,12 +218,12 @@ function handle_inline_query($inlineQuery) {
         $message = "";
     
         if(isset($streamer['viewers'])){
-            $message .= '<a href="https://static-cdn.jtvnw.net/previews-ttv/live_user_' . $streamer['nickname'] . '-1920x1080.jpg?v=' . time().'">&#8205;</a>';
+            $message .= '<a href="'.$previewUrl.'">&#8205;</a>';
         }
         $message .= !isset($streamer['viewers']) ? '🔴 {Name} сейчас оффлайн.' : '🟢 {Name} сейчас в сети.';
         if(isset($streamer['viewers'])){
             $message .= PHP_EOL;
-            $message .= 'Категория: <b>{Category}</b>{NewLine}Название: {Title}{NewLine}'.
+            $message .= 'Категория: <b>{Category}</b>{NewLine}Статус: {Title}{NewLine}'.
             'Стрим идет: {Time}{NewLine}'.
             'Зрителей: {Viewers}';
         }
@@ -213,6 +245,8 @@ function handle_inline_query($inlineQuery) {
             'type' => 'article',
             'id' => md5($streamer['name']),
             'title' => $streamer['name'],
+            /*'thumb_url' => $previewUrl,
+            'thumb_height' => '32',*/
             'input_message_content' => [
                 'parse_mode' => "HTML",
                 'message_text' => $responseMessage,

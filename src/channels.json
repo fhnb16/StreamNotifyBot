@@ -9,7 +9,7 @@
         },
         "strings": {
             "livestream_start": "{Name} Завёл стрим!{NewLine}Игра: {Category}.{NewLine}Название: {Title}.",
-            "livestream_end": "{Name} Оффнул с позором 🤡{NewLine}Под конец было {Viewers} зрилов.{NewLine}Подруб длился: {Time}",
+            "livestream_end": "{Name} Оффнул с позором 🤡{NewLine}Подруб длился: {Time}",
             "livestream_update_category": "Теперь играет в {Category}.{NewLine}Название: {Title}.",
             "livestream_duration": "Стрим длится: {Time}.",
             "livestream_viewers": "Малюток: {Viewers}."

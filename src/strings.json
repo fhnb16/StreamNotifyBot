@@ -1,9 +1,9 @@
 {
     "en": {
         "livestream_start": "🚀 {Name} has started streaming!{NewLine}Category: {Category}{NewLine}Title: {Title}",
-        "livestream_end": "{Name} finished broadcast 😴{NewLine}Stream length: {Time}",
-        "livestream_update_title": "✨ Changed stream Title to {Title}",
-        "livestream_update_category": "Changed stream Category to {Category} 🎮",
+        "livestream_end": "{Name} finished broadcast 😴{NewLine}Duration: {Time}",
+        "livestream_update_title": "✨ Changed stream title to {Title}",
+        "livestream_update_category": "New category is {Category} 🎮",
         "livestream_title": "Title: {Title}.",
         "livestream_category": "Category: {Category} 🎮",
         "livestream_duration": "Broadcast duration: {Time}.",
@@ -11,11 +11,11 @@
         "livestream_offline": "Update info, but broadcast currently offline."
     },
     "ru": {
-        "livestream_start": "🚀 {Name} Начинает трансляцию!{NewLine}Категория: {Category}{NewLine}Название: {Title}",
-        "livestream_end": "{Name} Завершил поток ‍😴{NewLine}Стрим длился {Time}",
-        "livestream_update_title": "✨ Изменил название на {Title}",
+        "livestream_start": "🚀 {Name} Начинает трансляцию!{NewLine}Статус: {Category}{NewLine}Название: {Title}",
+        "livestream_end": "{Name} Завершил стрим ‍😴{NewLine}Длительность {Time}",
+        "livestream_update_title": "✨ Новый статус: {Title}",
         "livestream_update_category": "Сменил категорию на {Category} 🎮",
-        "livestream_title": "Название {Title}.",
+        "livestream_title": "Статус {Title}.",
         "livestream_category": "Категория {Category} 🎮",
         "livestream_duration": "Продолжительность стрима: {Time}.",
         "livestream_viewers": "Зрители: {Viewers}.",

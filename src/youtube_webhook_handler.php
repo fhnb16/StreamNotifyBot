@@ -94,9 +94,15 @@ if (isset($videoInfo['items'])) {
             unset($channels[$id]['startedAt']);
             unset($channels[$id]['url']);
             unset($channels[$id]['viewers']);
+
+            // Save updated JSON with broadcaster_id and webhook expiration time
+            $channelsNewHash = hash('sha256', serialize($channels));
+            if ($channelsNewHash != $channelsHash) save_json('channels.json', $channels);
+
             notify_channels($channels[$id], $message, 'offline', false);
             return;
         }
+            return;
     }
     
     $notifyAboutOnline = false;

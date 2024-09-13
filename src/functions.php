@@ -149,32 +149,6 @@ function merge_streamers_with_waitlist($streamers, $waitlist) {
     return $streamers;
 }
 
-/**
- * Объединение двух массивов по ключу `broadcaster_id`.
- *
- * @param array $array1 Первый массив с данными стримеров.
- * @param array $array2 Второй массив с данными для объединения (например, `webhook_expire_at`).
- * @return array Массив с добавленными данными.
- */
-function merge_webhook_with_channels($array1, $array2) {
-    // Перебираем первый массив
-    foreach ($array1 as &$item1) {
-        // Ищем соответствующий элемент в массиве $array2
-        foreach ($array2 as $item2) {
-            // Если broadcaster_id совпадает, добавляем данные
-            if ($item1['broadcaster_id'] === $item2['broadcaster_id']) {
-                // Добавляем или обновляем нужное поле (например, webhook_expires_at)
-                $item1['webhook_expires_at'] = $item2['webhook_expires_at'];
-                // Если нужно добавить больше полей, можно делать это здесь
-                // $item1['some_other_field'] = $item2['some_other_field'];
-                break; // Если нашли совпадение, можно выйти из цикла
-            }
-        }
-    }
-
-    return $array1;
-}
-
 // Функция для получения и кэширования токена
 function get_twitch_access_token() {
     $token_file = '.twitch_token';
@@ -246,23 +220,6 @@ function get_broadcaster_id($nickname) {
     return $data['data'][0]['id'] ?? null;
 }
 
-// Make GET request with cURL
-/*function make_get_request($url, $headers = []) {
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-    $response = curl_exec($ch);
-    log_message("GET request to {$url}, Response: " . $response);
-
-    if (curl_errno($ch)) {
-        log_message("cURL error: " . curl_error($ch));
-    }
-
-    curl_close($ch);
-    return $response;
-}*/
-
 // Helper function to perform GET requests
 function make_get_request($url, $headers = []) {
     $ch = curl_init();
@@ -273,7 +230,7 @@ function make_get_request($url, $headers = []) {
     }
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    if($httpCode >= 400) error_message("Error ". $httpCode . ": Url" . $url . ", Response: " . $response);
+    if($httpCode >= 400) error_message("Error ". $httpCode . ": Url" . $url . ", Response: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     curl_close($ch);
     return $response;
 }
@@ -290,7 +247,7 @@ function make_post_request($url, $data, $headers = []) {
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if($httpCode >= 400) error_message("Error ". $httpCode . ": Url" . $url . ", Response: " . $response);
-    log_message("POST request to {$url}, Data: " . $data . ", Response: " . $response);
+    log_message("POST request to {$url}, Data: " . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . ", Response: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
     if (curl_errno($ch)) {
         log_message("cURL error: " . curl_error($ch));
@@ -975,7 +932,7 @@ function subscribe_to_youtube_push_notifications($user_ids) {
         
         // Логируем успешную подписку
         log_message("Subscribed to YouTube push notifications for user_id: {$user_id}, expires on: {$expiration_date}");
-        $tempArray[] = Array("broadcaster_id"=>$user_id, "webhook_expires_at"=>$expiration_date, "platform"=>"youtube");
+        $tempArray[] = ["broadcaster_id"=>$user_id, "webhook_expires_at"=>$expiration_date, "platform"=>"youtube"];
         /*if ($response) {
             log_message("Subscribed to YouTube push notifications for user_id: {$user_id}, expires on: {$expiration_date}");
             $tempArray[] = Array("broadcaster_id"=>$user_id, "webhook_expires_at"=>$expiration_date);
@@ -988,6 +945,32 @@ function subscribe_to_youtube_push_notifications($user_ids) {
 
     // Возвращаем дату истечения подписки для информации
     return $tempArray;
+}
+
+/**
+ * Объединение двух массивов по ключу `broadcaster_id`.
+ *
+ * @param array $array1 Первый массив с данными стримеров.
+ * @param array $array2 Второй массив с данными для объединения (например, `webhook_expire_at`).
+ * @return array Массив с добавленными данными.
+ */
+function merge_webhook_with_channels($array1, $array2) {
+    // Перебираем первый массив
+    foreach ($array1 as &$item1) {
+        // Ищем соответствующий элемент в массиве $array2
+        foreach ($array2 as $item2) {
+            // Если broadcaster_id совпадает, добавляем данные
+            if ($item1['broadcaster_id'] === $item2['broadcaster_id']) {
+                // Добавляем или обновляем нужное поле (например, webhook_expires_at)
+                $item1['webhook_expires_at'] = $item2['webhook_expires_at'];
+                // Если нужно добавить больше полей, можно делать это здесь
+                // $item1['some_other_field'] = $item2['some_other_field'];
+                break; // Если нашли совпадение, можно выйти из цикла
+            }
+        }
+    }
+
+    return $array1;
 }
 
 
