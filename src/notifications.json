@@ -1,0 +1,297 @@
+{
+    "0": {
+        "nickname": "honeymad",
+        "name": "HoneyMad",
+        "broadcaster_id": "40298003",
+        "notify": {
+            "-1001751736036": {
+                "about": "Чат Donique https://t.me/doniquechat",
+                "type": "live"
+            },
+            "-1002496813968": {
+                "about": "https://t.me/maddysonOnline",
+                "type": "all"
+            },
+            "6641763465": {
+                "about": "id - https://6641763465,first_name - Пуки,last_name - Каки,language_code - ru,allows_write_to_pm - true",
+                "type": "live"
+            },
+            "65088183": {
+                "about": "@fhnb16",
+                "type": "online"
+            }
+        }
+    },
+    "1": {
+        "nickname": "gilticus",
+        "name": "Gilticus",
+        "broadcaster_id": "102803402",
+        "notify": {
+            "-1002126986481": {
+                "about": "Чат БКТ",
+                "type": "live"
+            },
+            "-1002086910133": {
+                "about": "https://t.me/GilticusOfficial",
+                "type": "all"
+            },
+            "-1002136494074": {
+                "about": "https://t.me/GilticusWild",
+                "type": "all"
+            }
+        }
+    },
+    "2": {
+        "nickname": "vorobiov__",
+        "name": "Vorobiov__",
+        "broadcaster_id": "107102662",
+        "notify": {
+            "-1001647320059": {
+                "about": "Чат Воробьев",
+                "type": "updates"
+            },
+            "-1002136494074": {
+                "about": "https://t.me/GilticusWild",
+                "type": "all"
+            }
+        }
+    },
+    "3": {
+        "nickname": "lildonique",
+        "name": "Donique",
+        "broadcaster_id": "114187763",
+        "notify": {
+            "-1001751736036": {
+                "about": "Чат Donique https://t.me/doniquechat",
+                "type": "updates"
+            },
+            "-1001738977757": {
+                "about": "https://t.me/lildonique",
+                "type": "online"
+            },
+            "6641763465": {
+                "about": "id - tg://user?id=6641763465,first_name - Пуки,last_name - Каки,language_code - ru",
+                "type": "online"
+            }
+        }
+    },
+    "4": {
+        "nickname": "benjy",
+        "name": "Benjy",
+        "broadcaster_id": "267123083",
+        "notify": []
+    },
+    "5": {
+        "nickname": "renatische",
+        "name": "Renatische",
+        "broadcaster_id": "409510414",
+        "notify": []
+    },
+    "6": {
+        "nickname": "revolt",
+        "name": "REVOLT",
+        "broadcaster_id": "120178312",
+        "notify": {
+            "-1002312612782": {
+                "about": "https://t.me/RevoltStreaming",
+                "type": "all"
+            }
+        }
+    },
+    "7": {
+        "nickname": "snailkick",
+        "name": "SNAILKICK",
+        "broadcaster_id": "63614185",
+        "notify": []
+    },
+    "8": {
+        "nickname": "degrastream",
+        "name": "Degrastream",
+        "broadcaster_id": "137192875",
+        "notify": {
+            "-1002311895287": {
+                "about": "оповещения о стримах бебея",
+                "type": "all"
+            }
+        }
+    },
+    "9": {
+        "nickname": "gufovicky",
+        "name": "Gufovicky",
+        "broadcaster_id": "74757489",
+        "notify": []
+    },
+    "10": {
+        "nickname": "ditoshey",
+        "name": "Ditoshey",
+        "broadcaster_id": "62167884",
+        "notify": []
+    },
+    "11": {
+        "nickname": "vombuz",
+        "name": "Vombuz",
+        "broadcaster_id": "71743885",
+        "notify": []
+    },
+    "12": {
+        "nickname": "deadp47_",
+        "name": "DeadP47_",
+        "broadcaster_id": "64173519",
+        "notify": []
+    },
+    "13": {
+        "nickname": "rachtaz",
+        "name": "RachtaZ",
+        "broadcaster_id": "168514917",
+        "notify": []
+    },
+    "14": {
+        "nickname": "welovegames",
+        "name": "WELOVEGAMES",
+        "broadcaster_id": "30814134",
+        "notify": []
+    },
+    "15": {
+        "nickname": "thedrewzaj",
+        "name": "TheDREWZAJ",
+        "broadcaster_id": "47920871",
+        "notify": []
+    },
+    "16": {
+        "nickname": "codemiko",
+        "name": "CodeMiko",
+        "broadcaster_id": "500128827",
+        "notify": []
+    },
+    "17": {
+        "nickname": "alinarinrin",
+        "name": "AlinaRinRin",
+        "broadcaster_id": "114037984",
+        "notify": []
+    },
+    "18": {
+        "nickname": "neenoh",
+        "name": "Neenoh",
+        "broadcaster_id": "71987056",
+        "notify": []
+    },
+    "19": {
+        "nickname": "delaney",
+        "name": "Delaney",
+        "broadcaster_id": "186818440",
+        "notify": []
+    },
+    "20": {
+        "nickname": "c_a_k_e",
+        "name": "C_a_k_e",
+        "broadcaster_id": "43899589",
+        "notify": []
+    },
+    "21": {
+        "nickname": "hornetlul",
+        "name": "hornetlul",
+        "broadcaster_id": "99889461",
+        "notify": []
+    },
+    "22": {
+        "nickname": "irinatuk_3d",
+        "name": "irinatuk_3d",
+        "broadcaster_id": "764867306",
+        "notify": {
+            "-1001939060717": {
+                "about": "Чат irinatuk",
+                "type": "updates"
+            },
+            "-1001843403165": {
+                "about": "@IrinaTukPlay",
+                "type": "online"
+            }
+        }
+    },
+    "23": {
+        "nickname": "karmikkoala",
+        "name": "KarmikKoala",
+        "broadcaster_id": "54742538",
+        "notify": []
+    },
+    "24": {
+        "nickname": "lyasyaa",
+        "name": "Lyasyaa",
+        "broadcaster_id": "203523774",
+        "notify": {
+            "-1002126986481": {
+                "about": "Чат БКТ",
+                "type": "live"
+            }
+        }
+    },
+    "25": {
+        "name": "Adash",
+        "nickname": "adash",
+        "broadcaster_id": "129961330",
+        "notify": []
+    },
+    "26": {
+        "name": "sashagrey",
+        "nickname": "sashagrey",
+        "broadcaster_id": "421838340",
+        "notify": []
+    },
+    "27": {
+        "name": "BIGRUSSIANMUM",
+        "nickname": "bigrussianmum",
+        "broadcaster_id": "189850266",
+        "notify": []
+    },
+    "28": {
+        "name": "davydov_88",
+        "nickname": "davydov_88",
+        "broadcaster_id": "152560094",
+        "notify": {
+            "-1002496813968": {
+                "about": "https://t.me/maddysonOnline",
+                "type": "all"
+            }
+        }
+    },
+    "29": {
+        "name": "@murkpower",
+        "nickname": "@murkpower",
+        "broadcaster_id": "UCab_Ssb8ce_-XF7hMA2Yyyg",
+        "notify": {
+            "6641763465": {
+                "about": "id - tg://user?id=6641763465,first_name - Пуки,last_name - Каки,language_code - ru,allows_write_to_pm - true",
+                "type": "online"
+            }
+        }
+    },
+    "30": {
+        "name": "@DeadP47",
+        "nickname": "@deadp47",
+        "broadcaster_id": "UCUzkWdUCkVrkKCcmut9epTQ",
+        "notify": []
+    },
+    "31": {
+        "name": "@revoltkam",
+        "nickname": "@revoltkam",
+        "broadcaster_id": "UCftyC9L7aedgIJ-zrGWLrEw",
+        "notify": {
+            "-1002312612782": {
+                "about": "https://t.me/RevoltStreaming",
+                "type": "all"
+            }
+        }
+    },
+    "33": {
+        "name": "@lutsayspeech",
+        "nickname": "@lutsayspeech",
+        "broadcaster_id": "UCyPvbjMjnQBn-6FcxxovSHA",
+        "notify": []
+    },
+    "34": {
+        "name": "@user-mo6xq1pq9v",
+        "nickname": "@user-mo6xq1pq9v",
+        "broadcaster_id": "UCh9_xeiZFvobZD2B0HVklTA",
+        "notify": []
+    }
+}

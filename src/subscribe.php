@@ -21,17 +21,18 @@ log_message("Request to '".$_SERVER['REQUEST_URI']."', with data: `" . $requestE
 
 if(empty($user_id) || empty($broadcaster_id) || empty($user_data)) { echo json_encode(['status' => 'error', 'result' => 'user id or info, or broadcaster id is empty']); exit(); }
 
-$channels = load_json('channels.json');
+$channels = load_json('notifications.json');
 
 // Ищем канал и удаляем добавляем
 foreach ($channels as &$channel) {
     if ($channel['broadcaster_id'] == $broadcaster_id) {
         foreach ($channel['notify'] as $key => $value) {
-            if (explode(':', $key)[0] == $user_id) {
+            if ($key == $user_id) {
                 if($sub_edit && $is_admin) {
                     unset($channel['notify'][$key]);
-                    $channel['notify'][$user_id . ':' . $user_data] = $sub_level;
-                    save_json('channels.json', $channels);
+                    $channel['notify'][$user_id]['about'] = $user_data;
+                    $channel['notify'][$user_id]['type'] = $sub_level;
+                    save_json('notifications.json', $channels);
                     echo json_encode(['status' => 'ok']);
                     exit();
                 } else {
@@ -40,11 +41,37 @@ foreach ($channels as &$channel) {
                 }
             }
         }
-        $channel['notify'][$user_id . ':' . $user_data] = $sub_level;
+        $geo = "";
+        // IP address 
+        $ip_addr = $_SERVER["REMOTE_ADDR"];
+        // API end URL 
+        $apiURL = 'https://freegeoip.app/json/'.$userIP; 
+        
+        // Create a new cURL resource with URL 
+        $ch = curl_init($apiURL); 
+        
+        // Return response instead of outputting 
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+        
+        // Execute API request 
+        $apiResponse = curl_exec($ch); 
+        
+        // Close cURL resource 
+        curl_close($ch); 
+        
+        // Retrieve IP data from API response 
+        $ipData = json_decode($apiResponse, true); 
+
+        if($ipData) {
+            $geo = $ipData['region_name']."/".$ipData['city']."/".$ipData['country_code']."/".$ipData['ip'];
+        }
+        
+        $channel['notify'][$user_id]['about'] = $user_data . ",geo = " . $geo;
+        $channel['notify'][$user_id]['type'] = $sub_level;
         break;
     }
 }
 
-save_json('channels.json', $channels);
+save_json('notifications.json', $channels);
 
 echo json_encode(['status' => 'ok']);

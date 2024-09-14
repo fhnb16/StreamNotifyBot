@@ -130,7 +130,8 @@
         const userId = tg.initDataUnsafe.user.id;
         const userData = tg.initDataUnsafe.user;
         const userLang = tg.initDataUnsafe.user.language_code;
-        var locale = (userLang == "ru") ? "ru" : "en";
+
+        var locale = (userLang == "ru" || userLang == "kk" || userLang == "uk" || userLang == "be") ? "ru" : "en";
 
         document.getElementById('pageTitle').innerText = strings[locale].title;
         document.getElementById('addNotify').innerText = strings[locale].addNotify;
@@ -152,10 +153,10 @@
         const subNotifyButton = document.getElementById('subscribeNotify');
         const notifyLevelSelect = document.getElementById('notifyLevelSelect');
 
-        const isDarkTheme = tg.colorScheme;
+        const colorScheme = tg.colorScheme;
 
         // Если включена темная тема, добавляем класс "dark" к тегу <html>
-        if (isDarkTheme == "dark") {
+        if (colorScheme == "dark") {
             document.body.classList.add('dark');
         }
 
@@ -201,6 +202,19 @@
             if (isAdmin) {
                 channelSelect.innerHTML = `<option value="">${strings[locale].selectChannel}</option>`; // Очищаем список
                 renderChannelSelect(data.channels);
+                var urlParams = new URLSearchParams(window.location.search);
+                var broadcaster = urlParams.get('broadcaster_id');
+                if (broadcaster) {
+                    var options = channelSelect.options;
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value === broadcaster) {
+                            options[i].selected = true;
+                            channelSelect.dispatchEvent(new Event('change'));
+                            break;
+                        }
+                    }
+                }
+                tableName.classList.add('hidden');
             } else {
                 notifyTableBody.innerHTML = ''; // Очищаем таблицу
                 Object.entries(data.channels).forEach(([key, channel]) => {
@@ -257,27 +271,29 @@
         function renderNotifyTable(notify, channel = null) {
             const notifyTable = document.getElementById('notifyTable');
             notifyTable.classList.remove('hidden');
-            Object.keys(notify).forEach(key => {
+            Object.entries(notify).forEach(([key, value]) => {
                 const row = document.createElement('tr');
-                var splitted = splitOnce(key, ':');
-                var nameFormatted = splitted[1];
+                //var splitted = splitOnce(key, ':');
+                var nameFormatted = value.about;
+                var notifyFormatted = value.type;
                 if(!isAdmin){
-                    var notesObject = stringToObject(splitted[1]);
+                    var notesObject = stringToObject(value.about);
                     nameFormatted = notesObject.first_name + " " + notesObject.last_name;
                     if(notesObject.username != undefined){
                         nameFormatted += ", " + notesObject.username;
                     }
+                    notifyFormatted = strings[locale]['selectNotifyType_'+value.type];
                 }else{
                     addNotifyButton.classList.add('hidden');
                 }
                 row.innerHTML = `
-                    <td class="border p-2">${channel.name}</td>
-                    <td class="border p-2">${splitted[0]}</td>
+                    ${!isAdmin ? `<td class="border p-2">${channel.name}</td>` : ``}
+                    <td class="border p-2">${key}</td>
                     <td class="border p-2">${nameFormatted}</td>
-                    <td class="border p-2">${notify[key]}</td>
+                    <td class="border p-2">${notifyFormatted}</td>
                     <td class="border p-2 table-cell flex-wrap">
-                        ${isAdmin ? `<button class="bg-yellow-500 text-white p-1 my-1 rounded editBtn flex-grow" data-bid="${channel.broadcaster_id}" data-sid="${splitted[0]}" data-unotify="${splitted[1]}" data-unvalue="${notify[key]}">${strings[locale].actionsEdit}</button>
-                        <button class="bg-red-500 text-white p-1 my-1 rounded deleteBtn flex-grow" data-bid="${channel.broadcaster_id}" data-sid="${splitted[0]}" data-unotify="${splitted[1]}">${strings[locale].actionsDelete}</button>` : 
+                        ${isAdmin ? `<button class="bg-yellow-500 text-white p-1 my-1 rounded editBtn flex-grow" data-bid="${channel.broadcaster_id}" data-sid="${key}" data-unotify="${value.about}" data-unvalue="${value.type}">${strings[locale].actionsEdit}</button>
+                        <button class="bg-red-500 text-white p-1 my-1 rounded deleteBtn flex-grow" data-bid="${channel.broadcaster_id}" data-sid="${key}" data-unotify="${value.about}">${strings[locale].actionsDelete}</button>` : 
                         `<button class="bg-red-500 text-white p-1 my-1 rounded unsubscribeBtn flex-grow" data-bid="${channel.broadcaster_id}" data-bname="${channel.name}">${strings[locale].actionsUnsubscribe}</button>`}
                     </td>
                 `;
@@ -389,6 +405,17 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: uid, broadcaster_id: broadcasterId, user_data: userData, sub_level: subLevel, is_admin: isAdmin, sender_id: userId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status == "ok"){
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', broadcasterId);
+                    window.location.href = url.toString();
+                } else {
+                    // Обработка ошибки: например, вывести сообщение об ошибке
+                    console.error('Запрос не удался:', data);
+                }
             });
         }
 
@@ -402,6 +429,17 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: uid, broadcaster_id: broadcasterId, user_data: userData, sub_level: subLevel, is_admin: isAdmin, sender_id: userId, sub_edit: true })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status == "ok"){
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', broadcasterId);
+                    window.location.href = url.toString();
+                } else {
+                    // Обработка ошибки: например, вывести сообщение об ошибке
+                    console.error('Запрос не удался:', data);
+                }
             });
         }
 
@@ -413,6 +451,17 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: userId, broadcaster_id: broadcasterId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status == "ok"){
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', broadcasterId);
+                    window.location.href = url.toString();
+                } else {
+                    // Обработка ошибки: например, вывести сообщение об ошибке
+                    console.error('Запрос не удался:', data);
+                }
             });
         }
 
@@ -424,6 +473,17 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: userId, broadcaster_id: broadcasterId, subscriber_id: subscriberId, is_admin: isAdmin, sender_id: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status == "ok"){
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', broadcasterId);
+                    window.location.href = url.toString();
+                } else {
+                    // Обработка ошибки: например, вывести сообщение об ошибке
+                    console.error('Запрос не удался:', data);
+                }
             });
         }
 

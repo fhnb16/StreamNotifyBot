@@ -12,6 +12,9 @@ if (isset($_GET['cron']) && $_GET['cron'] == "backup") {
     log_message("~~~ Backup channels.json ~~~");
     $channels = load_json('channels.json');
     save_json('backup' . DIRECTORY_SEPARATOR . 'channels_' . time() . '.json', $channels);
+    log_message("~~~ Backup notifications.json ~~~");
+    $notifications = load_json('notifications.json');
+    save_json('backup' . DIRECTORY_SEPARATOR . 'notifications_' . time() . '.json', $notifications);
     exit;
 }
 
@@ -124,6 +127,8 @@ function youtubeSetup(&$channels){
         $broadcaster_id = isset($channel['broadcaster_id']) ? $channel['broadcaster_id'] : get_channel_id_by_username($broadcaster_nickname);
 
         $channels[$id]['broadcaster_id'] = $broadcaster_id;
+
+        checkNotifyJson($broadcaster_id, $channel['name'], $channel['nickname']);
 
         // Check if webhook is registered and has not expired
         if (isset($channel['webhook_expires_at']) && isset($channel['broadcaster_id'])) {
@@ -284,6 +289,7 @@ function twitchSetup(&$channels){
             if ($broadcaster_id) {
                 // Save broadcaster_id to the channel array
                 $channels[$index]['broadcaster_id'] = $broadcaster_id;
+                checkNotifyJson($broadcaster_id, $channel['name'], $channel['nickname']);
                 log_message("Broadcaster ID for {$channel['nickname']} is {$broadcaster_id}");
             } else {
                 log_message("Failed to get broadcaster ID for {$channel['nickname']}. Skipping.");

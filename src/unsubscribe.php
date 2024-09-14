@@ -11,13 +11,13 @@ log_message("Request to '".$_SERVER['REQUEST_URI']."', with data: `" . $requestE
 
 if(empty($user_id) || empty($broadcaster_id)) { echo json_encode(['status' => 'error', 'result' => 'user id or broadcaster id is empty']); exit(); }
 
-$channels = load_json('channels.json');
+$channels = load_json('notifications.json');
 
 // Ищем канал и удаляем подписку
 foreach ($channels as &$channel) {
     if ($channel['broadcaster_id'] == $broadcaster_id) {
         foreach ($channel['notify'] as $key => $value) {
-            if (explode(':', $key)[0] == $user_id) {
+            if ($key == $user_id) {
                 unset($channel['notify'][$key]);
             }
         }
@@ -25,6 +25,6 @@ foreach ($channels as &$channel) {
     }
 }
 
-save_json('channels.json', $channels);
+save_json('notifications.json', $channels);
 
 echo json_encode(['status' => 'ok']);

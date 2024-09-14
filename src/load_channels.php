@@ -16,7 +16,7 @@ if($is_admin && $sender_id != ADMIN_ID){
 
 log_message("Request to '".$_SERVER['REQUEST_URI']."', with data: `" . $requestEncoded ."`");
 
-$channels = load_json('channels.json');
+$channels = load_json('notifications.json');
 $response = [];
 
 // Если администратор, загружаем все каналы
@@ -27,8 +27,8 @@ if ($is_admin) {
         $userNotify = [];
         foreach ($channels as $channel) {
             $userNotify[] = [
-                "broadcaster_id" => $channel['broadcaster_id'],
-                "name" => $channel['name']
+                "name" => $channel['name'],
+                "broadcaster_id" => $channel['broadcaster_id']
             ];
         }
         $response['channels'] = $userNotify;
@@ -37,11 +37,11 @@ if ($is_admin) {
         $userNotify = [];
         foreach ($channels as $channel) {
             foreach ($channel['notify'] as $key => $value) {
-                if (explode(':', $key)[0] == $user_id) {
+                if ($key == $user_id) {
                     $userNotify[] = [
-                        "broadcaster_id" => $channel['broadcaster_id'],
                         "name" => $channel['name'],
-                        "notify" => [$key => $value]
+                        "broadcaster_id" => $channel['broadcaster_id'],
+                        "notify" => [$key => preg_replace('/,geo.*$/', '', $value)]
                     ];
                 }
             }
