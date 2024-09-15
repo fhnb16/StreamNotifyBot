@@ -39,7 +39,7 @@ if (!$entry) {
 }
 
 // Проверяем тип события (публикация нового видео)
-$videoId = (string)$entry->id;
+$videoId = (string)$entry->videoId;
 $channelId = (string)$entry->author->uri;
 $publishedDate = (string)$entry->published;
 

@@ -177,6 +177,7 @@
                 if(isAdmin) tg.expand();
                 loadChannels();
             } else {
+                tg.HapticFeedback.notificationOccurred('warning');
                 document.getElementById('pageTitle').textContent = 'Access denied';
             }
         }
@@ -224,6 +225,8 @@
                 });
                 tg.HapticFeedback.impactOccurred('soft');
                 addNotifyButton.classList.remove('hidden');
+                tableId.classList.add('hidden');
+                tableNote.classList.add('hidden');
             }
         }
 
@@ -291,8 +294,8 @@
                 }
                 row.innerHTML = `
                     ${!isAdmin ? `<td class="border p-2">${channel.name}</td>` : ``}
-                    <td class="border p-2">${key}</td>
-                    <td class="border p-2">${nameFormatted}</td>
+                    ${isAdmin ? `<td class="border p-2">${key}</td>` : ``}
+                    ${isAdmin ? `<td class="border p-2">${nameFormatted}</td>` : ``}
                     <td class="border p-2">${notifyFormatted}</td>
                     <td class="border p-2 table-cell flex-wrap">
                         ${isAdmin ? `<button class="bg-yellow-500 text-white p-1 my-1 rounded editBtn flex-grow" data-bid="${channel.broadcaster_id}" data-sid="${key}" data-unotify="${value.about}" data-unvalue="${value.type}">${strings[locale].actionsEdit}</button>
@@ -413,7 +416,6 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
@@ -441,7 +443,6 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
@@ -467,7 +468,6 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
@@ -493,7 +493,6 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();

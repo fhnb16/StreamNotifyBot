@@ -772,23 +772,26 @@ function notify_channels($channel, $message, $type, $previewEnabled) {
     $notifications = load_json('notifications.json');
     
     foreach($notifications as $notify){
-        if($notify['broadcaster_id'] != $channel['broadcaster_id']) continue;
-        foreach ($notify as $chatid => $notify_info) {
-            $chat_id = $chatid;
-            $chat_name = $notify_info['about'];
-            $notify_type = $notify_info['type'];
-            if ($notify_type === 'all') {
-                log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+        if($notify['broadcaster_id'] != $channel['broadcaster_id']) { continue; } else {
+            
+            foreach ($notify['notify'] as $chatid => $notify_info) {
+                $chat_id = $chatid;
+                $chat_name = $notify_info['about'];
+                $notify_type = $notify_info['type'];
+                if ($notify_type === 'all') {
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                }
+                if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                }
+                if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                }
+                if ($notify_type === 'online' && $type == 'online') {
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                }
             }
-            if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
-                log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-            }
-            if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
-                log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-            }
-            if ($notify_type === 'online' && $type == 'online') {
-                log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
-            }
+        
         }
     }
 

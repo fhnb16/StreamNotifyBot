@@ -136,10 +136,10 @@ function youtubeSetup(&$channels){
         if(!isset($channel['broadcaster_id']) || $broadcaster_name == $broadcaster_nickname){
             $newBidName = get_channel_id_by_username($broadcaster_nickname, true);
             $channels[$id]['broadcaster_id'] = $newBidName['broadcaster_id'];
+            $broadcaster_id = $newBidName['broadcaster_id'];
             $channels[$id]['name'] = $newBidName['name'];
+            $broadcaster_name = $newBidName['name'];
         }
-
-        $channels[$id]['broadcaster_id'] = $broadcaster_id;
 
         checkNotifyJson($broadcaster_id, $channel['name'], $channel['nickname']);
 
