@@ -41,8 +41,8 @@ foreach ($channels as &$channel) {
                 }
             }
         }
-        
-        $channel['notify'][$user_id]['about'] = $user_data . meta();
+        $meta = !$is_admin ? meta() : "";
+        $channel['notify'][$user_id]['about'] = $user_data . $meta;
         $channel['notify'][$user_id]['type'] = $sub_level;
         break;
     }
