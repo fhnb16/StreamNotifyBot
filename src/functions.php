@@ -231,6 +231,7 @@ function make_get_request($url, $headers = []) {
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if($httpCode >= 400) error_message("Error ". $httpCode . ": Url" . $url . ", Response: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    log_message("POST request to {$url}" . ", Response: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     curl_close($ch);
     return $response;
 }
@@ -270,7 +271,7 @@ function set_telegram_webhook($url) {
         log_message("Telegram webhook successfully set to {$url}");
         return true;
     } else {
-        log_message("Failed to set Telegram webhook. Response: " . json_encode($response));
+        log_message("Failed to set Telegram webhook. Response: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         return false;
     }
 }

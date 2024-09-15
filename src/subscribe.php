@@ -41,32 +41,8 @@ foreach ($channels as &$channel) {
                 }
             }
         }
-        $geo = "";
-        // IP address 
-        $ip_addr = $_SERVER["REMOTE_ADDR"];
-        // API end URL 
-        $apiURL = 'https://freegeoip.app/json/'.$userIP; 
         
-        // Create a new cURL resource with URL 
-        $ch = curl_init($apiURL); 
-        
-        // Return response instead of outputting 
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
-        
-        // Execute API request 
-        $apiResponse = curl_exec($ch); 
-        
-        // Close cURL resource 
-        curl_close($ch); 
-        
-        // Retrieve IP data from API response 
-        $ipData = json_decode($apiResponse, true); 
-
-        if($ipData) {
-            $geo = $ipData['region_name']."/".$ipData['city']."/".$ipData['country_code']."/".$ipData['ip'];
-        }
-        
-        $channel['notify'][$user_id]['about'] = $user_data . ",geo = " . $geo;
+        $channel['notify'][$user_id]['about'] = $user_data . meta();
         $channel['notify'][$user_id]['type'] = $sub_level;
         break;
     }

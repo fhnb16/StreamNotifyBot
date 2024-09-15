@@ -26,5 +26,8 @@ define('LOG_FILE', 'log.txt'); // Path to log file
 define('ERR_FILE', 'error.txt'); // Path to error file
 define('DEBUG', true);
 
+function meta(){
+    return '';
+}
 
 ?>
