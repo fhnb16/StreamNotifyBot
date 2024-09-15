@@ -829,7 +829,7 @@ function get_youtube_stream_info($username, &$broadcaster_id = null) {
 
     if($broadcaster_id == null) {
         // 1. Получаем идентификатор канала по имени пользователя
-        $channelId = get_channel_id_by_username($username);
+        $channelId = get_channel_id_by_username($username, true);
     } else {
         $channelId = $broadcaster_id;
     }
@@ -855,8 +855,17 @@ function get_youtube_stream_info($username, &$broadcaster_id = null) {
 function checkNotifyJson($broadcaster_id, $name, $nickname){
     $channels = load_json('notifications.json');
 
-    foreach($channels as $channel) {
-        if($channel['broadcaster_id'] == $broadcaster_id) { return; }
+    foreach($channels as &$channel) {
+        if($channel['broadcaster_id'] == $broadcaster_id) {
+            if($channel['name'] != $name){
+                $channel['name'] = $name;
+                save_json('notifications.json', $channels);
+                log_message("Changed name for {$name} in notifications.json.");
+                return;
+            }else{
+                return;
+            }
+        }
     }
 
     $channels[] = [
@@ -871,7 +880,7 @@ function checkNotifyJson($broadcaster_id, $name, $nickname){
 }
 
 // Вспомогательная функция для получения channelId по username
-function get_channel_id_by_username($username) {
+function get_channel_id_by_username($username, $full = false) {
     $url = "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&forHandle=" . urlencode($username) . "&key=" . YOUTUBE_API_KEY;
     
     $response = file_get_contents($url);
@@ -879,7 +888,14 @@ function get_channel_id_by_username($username) {
     log_message("Get id by username respone: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
     if (isset($data['items'][0])) {
-        return $data['items'][0]['id'];  // Возвращаем идентификатор канала
+        if (!$full) {
+            return $data['items'][0]['id'];  // Возвращаем идентификатор канала
+        }else{
+            return [
+                'broadcaster_id' => $data['items'][0]['id'],
+                'name' => $data['items'][0]['snippet']['title']
+            ];  // Возвращаем идентификатор канала и имя в виде массива
+        }
     }
 
     log_message("Can't get id by nickname.");

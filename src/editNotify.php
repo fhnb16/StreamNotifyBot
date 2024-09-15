@@ -413,12 +413,14 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
+                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
-                    console.error('Запрос не удался:', data);
+                    tg.showAlert(data.status+'\n\n'+data.result);
+                    console.error('Запрос не удался:', data.result);
                     tg.HapticFeedback.notificationOccurred('error');
                 }
             });
@@ -439,11 +441,13 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
+                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
+                    tg.showAlert(data.status+'\n\n'+data.result);
                     console.error('Запрос не удался:', data);
                     tg.HapticFeedback.notificationOccurred('error');
                 }
@@ -463,12 +467,14 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
+                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.showAlert(data.status+'\n\n'+data.result);
                     tg.HapticFeedback.notificationOccurred('error');
                 }
             });
@@ -487,12 +493,14 @@
             .then(data => {
                 if(data.status == "ok"){
                     tg.HapticFeedback.notificationOccurred('success');
+                    tg.showAlert('Success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.showAlert(data.status+'\n\n'+data.result);
                     tg.HapticFeedback.notificationOccurred('error');
                 }
             });

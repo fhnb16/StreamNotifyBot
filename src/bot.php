@@ -75,8 +75,13 @@ if (isset($_GET['youtube_clean'])) {
     foreach ($channels as $id => $channel) {
         if($channel['platform'] != "youtube") continue;
         $user_ids[] = ["channel_id" => $channel['broadcaster_id']];
+        unset($channels[$id]['webhook_expires_at']);
     }
     unsubscribe_from_all_youtube_push_notifications($user_ids);
+
+    $channelsNewHash = hash('sha256', serialize($channels));
+    if ($channelsNewHash != $channelsHash) save_json('channels.json', $channels);
+
     echo "Disabled subscriptions have been cancelled.";
     exit;
 }
@@ -124,7 +129,15 @@ function youtubeSetup(&$channels){
 
         $broadcaster_nickname = $channel['nickname'];
 
-        $broadcaster_id = isset($channel['broadcaster_id']) ? $channel['broadcaster_id'] : get_channel_id_by_username($broadcaster_nickname);
+        $broadcaster_name = $channel['name'];
+
+        $broadcaster_id = $channel['broadcaster_id'];
+
+        if(!isset($channel['broadcaster_id']) || $broadcaster_name == $broadcaster_nickname){
+            $newBidName = get_channel_id_by_username($broadcaster_nickname, true);
+            $channels[$id]['broadcaster_id'] = $newBidName['broadcaster_id'];
+            $channels[$id]['name'] = $newBidName['name'];
+        }
 
         $channels[$id]['broadcaster_id'] = $broadcaster_id;
 

@@ -27,14 +27,23 @@ if (isset($update['message'])) {
 function handle_message($message) {
     $chatId = $message['chat']['id'];
     $text = $message['text'];
+    $buttons = [
+        [
+            ['text' => 'Узнать статус стримера', 'switch_inline_query' => ''],
+            ['text' => 'Добавить стримера', 'url' => 'https://t.me/stickers_feedback_bot']
+        ],
+        [
+            ['text' => 'Подписаться на уведомления', 'web_app'=> ['url' => 'https://bot.fhnb.ru/StreamNotifyBot/editNotify.php']]
+        ]
+    ];
 
     switch (true) {
         case stristr($text,'/start'):
-            send_telegram_message($chatId, "Привет! Я бот для мониторинга стримеров.\nНажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах.\nИспользуйте /help, чтобы получить список команд.\nОбратная связь: @stickers_feedback_bot");
+            send_telegram_message($chatId, "Привет! Я бот для мониторинга стримеров.\nНажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах.\nИспользуйте /help, чтобы получить список команд.\nОбратная связь: @stickers_feedback_bot", $buttons);
             break;
 
         case stristr($text,'/help'):
-            send_telegram_message($chatId, "Нажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах или отписаться от них.\n\nОбратная связь: @stickers_feedback_bot\n\nДоступные команды:\n/start - Начать\n/help - Помощь\n/new - добавить стримера (только для админа)\n\nДля предложения стримеров пишите @stickers_feedback_bot\n\nДоступен inline-режим, напишите <code>@currentlyLive_bot </code> в любом чате и выберите стримера.");
+            send_telegram_message($chatId, "Нажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах или отписаться от них.\n\nОбратная связь: @stickers_feedback_bot\n\nДоступные команды:\n/start - Начать\n/help - Помощь\n/new - добавить стримера (только для админа)\n\nДля предложения стримеров пишите @stickers_feedback_bot\n\nДоступен inline-режим, напишите <code>@currentlyLive_bot </code> в любом чате и выберите стримера.", $buttons);
             break;
 
         case stristr($text,'/online'):
