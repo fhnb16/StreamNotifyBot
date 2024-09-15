@@ -15,7 +15,8 @@
         }
 
         /* Темная тема для select */
-        body.dark #channelSelect {
+        body.dark #channelSelect,
+        body.dark #notifyLevelSelect {
             background-color: #2d3748;
             color: #e2e8f0;
         }
@@ -126,7 +127,7 @@
         }
         
         const tg = window.Telegram.WebApp;
-        console.log(tg);
+        //console.log(tg);
         const userId = tg.initDataUnsafe.user.id;
         const userData = tg.initDataUnsafe.user;
         const userLang = tg.initDataUnsafe.user.language_code;
@@ -173,6 +174,7 @@
             const data = await response.json();
             if (data.status === 'ok') {
                 isAdmin = data.is_admin;
+                if(isAdmin) tg.expand();
                 loadChannels();
             } else {
                 document.getElementById('pageTitle').textContent = 'Access denied';
@@ -220,6 +222,7 @@
                 Object.entries(data.channels).forEach(([key, channel]) => {
                     renderNotifyTable(channel.notify, channel); // Если пользователь, просто отображаем его подписки
                 });
+                tg.HapticFeedback.impactOccurred('soft');
                 addNotifyButton.classList.remove('hidden');
             }
         }
@@ -240,6 +243,7 @@
                 const selectedChannelId = this.value;
                 const notifyTable = document.getElementById('notifyTable');
                 if (selectedChannelId) {
+                    tg.HapticFeedback.selectionChanged();
                     if(justList) {
                         subNotifyButton.classList.remove('hidden');
                         notifyLevelSelect.classList.remove('hidden');
@@ -252,7 +256,6 @@
                     notifyTableBody.innerHTML = ''; // Очищаем таблицу
                     notifyTable.classList.remove("hidden");
                     const selectedChannel = Object.entries(channels).find(([key, channel]) => channel.broadcaster_id === selectedChannelId)[1];
-                    //console.log(selectedChannel);
                     renderNotifyTable(selectedChannel.notify, selectedChannel);
                     addNewButton.classList.remove('hidden');
                     addNewButton.innerText = strings[locale].addNewButton + " " + selectedChannel.name;
@@ -409,12 +412,14 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status == "ok"){
+                    tg.HapticFeedback.notificationOccurred('success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.HapticFeedback.notificationOccurred('error');
                 }
             });
         }
@@ -433,12 +438,14 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status == "ok"){
+                    tg.HapticFeedback.notificationOccurred('success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.HapticFeedback.notificationOccurred('error');
                 }
             });
         }
@@ -455,12 +462,14 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status == "ok"){
+                    tg.HapticFeedback.notificationOccurred('success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.HapticFeedback.notificationOccurred('error');
                 }
             });
         }
@@ -477,12 +486,14 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status == "ok"){
+                    tg.HapticFeedback.notificationOccurred('success');
                     const url = new URL(window.location.href);
                     url.searchParams.set('broadcaster_id', broadcasterId);
                     window.location.href = url.toString();
                 } else {
                     // Обработка ошибки: например, вывести сообщение об ошибке
                     console.error('Запрос не удался:', data);
+                    tg.HapticFeedback.notificationOccurred('error');
                 }
             });
         }
