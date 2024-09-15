@@ -29,7 +29,9 @@ function handle_message($message) {
     $text = $message['text'];
     $buttons = [
         [
-            ['text' => 'Узнать статус стримера', 'switch_inline_query' => ''],
+            ['text' => 'Узнать статус стримера', 'switch_inline_query' => '']
+        ],
+        [
             ['text' => 'Добавить стримера', 'url' => 'https://t.me/stickers_feedback_bot']
         ],
         [
