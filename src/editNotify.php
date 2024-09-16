@@ -161,6 +161,10 @@
             document.body.classList.add('dark');
         }
 
+        /*Telegram.WebApp.onEvent('mainButtonClicked', function(){
+            window.location.href = "http://localhost:3000";
+        });*/
+
         // Отправляем POST-запрос на сервер для проверки ID пользователя
         async function checkUser() {
             const response = await fetch('check_user.php', {
@@ -174,7 +178,11 @@
             const data = await response.json();
             if (data.status === 'ok') {
                 isAdmin = data.is_admin;
-                if(isAdmin) tg.expand();
+                if(isAdmin) {
+                    tg.expand();
+                    //tg.MainButton.setText("Open dev page");
+                    //tg.MainButton.show();
+                }
                 loadChannels();
             } else {
                 tg.HapticFeedback.notificationOccurred('warning');
@@ -263,12 +271,18 @@
                     addNewButton.classList.remove('hidden');
                     addNewButton.innerText = strings[locale].addNewButton + " " + selectedChannel.name;
                     addNewButton.dataset.bid = selectedChannelId;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', selectedChannelId);
+                    window.history.pushState(null, '', url.toString());
                 } else {
                     subNotifyButton.classList.add('hidden');
                     notifyLevelSelect.classList.add('hidden');
                     addNewButton.classList.add('hidden');
                     notifyTableBody.innerHTML = ''; // Очищаем таблицу
                     notifyTable.classList.add("hidden");
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('broadcaster_id', "");
+                    window.history.pushState(null, '', url.toString());
                 }
             });
         }
