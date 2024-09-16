@@ -311,6 +311,7 @@ function twitchSetup(&$channels){
             }
         } else {
             $broadcaster_id = $channel['broadcaster_id'];
+            checkNotifyJson($broadcaster_id, $channel['name'], $channel['nickname']);
         }
 
         // Register EventSub webhook for the broadcaster

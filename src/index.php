@@ -14,11 +14,16 @@ if (!$update) {
 
 // Обрабатываем команды чата и callback
 if (isset($update['message'])) {
-    handle_message($update['message']);
+    handle_message($update['message'], $addStreamerMessage);
 } elseif (isset($update['callback_query'])) {
-    handle_callback($update['callback_query']);
+    handle_callback($update['callback_query'], $addStreamerMessage);
 } elseif (isset($update['inline_query'])) {
     handle_inline_query($update['inline_query']);
+}
+
+function addStreamerMessage($chatId){
+    $msg = "Пример команды:".PHP_EOL.PHP_EOL."<pre>/new https://twitch.tv/HoneyMad</pre>".PHP_EOL."или".PHP_EOL."<pre>/new https://www.youtube.com/@DeadP47</pre>".PHP_EOL.PHP_EOL."Поддержка Kick и Vk Play возможно появится позднее.";
+    send_telegram_message($chatId, $msg);
 }
 
 /**
@@ -29,13 +34,14 @@ function handle_message($message) {
     $text = $message['text'];
     $buttons = [
         [
+            ['text' => 'Подписаться на уведомления', 'web_app'=> ['url' => 'https://bot.fhnb.ru/StreamNotifyBot/editNotify.php']]
+        ],
+        [
             ['text' => 'Узнать статус стримера', 'switch_inline_query' => '']
         ],
         [
-            ['text' => 'Добавить стримера', 'url' => 'https://t.me/stickers_feedback_bot']
-        ],
-        [
-            ['text' => 'Подписаться на уведомления', 'web_app'=> ['url' => 'https://bot.fhnb.ru/StreamNotifyBot/editNotify.php']]
+            ['text' => 'Добавить стримера', 'callback_data' => 'addStreamerCallback'],
+            ['text' => 'Поддержка', 'url' => 'https://t.me/stickers_feedback_bot']
         ]
     ];
 
@@ -45,8 +51,35 @@ function handle_message($message) {
             break;
 
         case stristr($text,'/help'):
-            send_telegram_message($chatId, "Нажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах или отписаться от них.\n\nОбратная связь: @stickers_feedback_bot\n\nДоступные команды:\n/start - Начать\n/help - Помощь\n/new - добавить стримера (только для админа)\n\nДля предложения стримеров пишите @stickers_feedback_bot\n\nДоступен inline-режим, напишите <code>@currentlyLive_bot </code> в любом чате и выберите стримера.", $buttons);
+            send_telegram_message($chatId, "Нажмите на <b>Subscribe</b> чтобы подписаться на уведомления о стримерах или отписаться от них.\n\nДоступные команды:\n/start - Начать\n/support - Поддержать\n/help - Помощь\n/new - добавить стримера\n\nДля предложения функций и сотрудничества пишите @stickers_feedback_bot\n\nДоступен inline-режим, напишите <code>@currentlyLive_bot </code> в любом чате и выберите стримера.", $buttons);
             break;
+
+        case stristr($text,'/support'):
+            $tempEditedMessage = "Вы можете поддержать меня по данным реквизитам:" . PHP_EOL;
+            foreach(CFG_MONEY as $method=>$code) {
+                $tempMethod = "";
+                switch($method){
+                    case "donationalerts": $tempMethod = "DonationAlerts";
+                    break;
+                    case "btc": $tempMethod = "Bitcoin";
+                    break;
+                    case "ton": $tempMethod = "Ton";
+                    break;
+                    case "usdt": $tempMethod = "USDT";
+                    break;
+                    case "visa": $tempMethod = "Visa";
+                    break;
+                    case "mastercard": $tempMethod = "MasterCard";
+                    break;
+                    case "mir": $tempMethod = "Мир";
+                    break;
+                }
+                //$tempEditedMessage .= "**" . $tempMethod . "**:\n" . "`" . $code . "`\n\n";
+                $tempEditedMessage .= "<b>" . $tempMethod . "</b>" . PHP_EOL . '<code>'.$code.'</code>' . PHP_EOL;
+            }
+            send_telegram_message($chatId, $tempEditedMessage);
+            break;
+
 
         case stristr($text,'/online'):
             $streamers = get_streamers_online_list();
@@ -59,7 +92,6 @@ function handle_message($message) {
             break;
 
         case stristr($text,'/list'):
-            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             $streamers = load_json('channels.json');
             $responseText = "Список стримеров:\n";
             foreach($streamers as $streamer) {
@@ -69,19 +101,8 @@ function handle_message($message) {
             send_telegram_message($chatId, $responseText);
             break;
 
-        case stristr($text,'/edit'):
-            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
-            $buttons = [
-                [
-                    ['text' => 'Редактировать', 'callback_data' => 'editNotifications'],
-                    ['text' => 'Отменить', 'callback_data' => 'buttons_remove']
-                ]
-            ];
-            send_telegram_message($chatId, "Вы можете изменить уведомления:", $buttons);
-            break;
-
         case stristr($text,'/new'):
-            if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
+            //if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             $pattern = '/https?:\/\/(www\.)?(?<domain>[^\/]+)\/(?<nickname>[^\/]+)/';
             preg_match($pattern, $message['text'], $matches);
             if($matches){
@@ -91,20 +112,41 @@ function handle_message($message) {
                     '.tv' => "",
                     'live.' => ""
                 ];
+                $result = false;
+                $broadcaster_id = "";
                 $platform = replaceMultipleStrings($matches['domain'], $replaceArray);
-                $name = $matches['nickname'];
                 $nickname = strtolower($matches['nickname']);
-                $responseMessage = "Проверьте и подтвердите добавление." . PHP_EOL;
-                $responseMessage .= "<pre>".json_encode(array("name"=>$name,"nickname"=>$nickname,"platform"=>$platform), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "</pre>";
-                $buttons = [
-                    [
-                        ['text' => 'Добавить в очередь', 'callback_data' => 'add_streamer'],
-                        ['text' => 'Отменить', 'callback_data' => 'buttons_remove']
-                    ]
-                ];
-                send_telegram_message($chatId, $responseMessage, $buttons);
+                $name = $matches['nickname'];
+                switch($platform){
+                    case 'youtube': 
+                        $fetchStreamerData = get_channel_id_by_username($nickname, true);
+                        $name = $fetchStreamerData['name'];
+                        $broadcaster_id = $fetchStreamerData['broadcaster_id'];
+                        break;
+                    case 'twitch': 
+                        $fetchStreamerData = get_broadcaster_id($nickname, true);
+                        $name = $fetchStreamerData['name'];
+                        $broadcaster_id = $fetchStreamerData['broadcaster_id'];
+                        break;
+                }
+                if(!empty($broadcaster_id)){
+                    $result = true;
+                }
+                if($result){
+                    $responseMessage = "Проверьте и подтвердите добавление." . PHP_EOL . PHP_EOL;
+                    $responseMessage .= "<pre>".json_encode(array("name"=>$name,"nickname"=>$nickname,"platform"=>$platform,"broadcaster_id"=>$broadcaster_id), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "</pre>";
+                    $buttons = [
+                        [
+                            ['text' => 'Добавить в очередь', 'callback_data' => 'add_streamer'],
+                            ['text' => 'Отменить', 'callback_data' => 'buttons_remove']
+                        ]
+                    ];
+                    send_telegram_message($chatId, $responseMessage, $buttons);
+                }else{
+                    send_telegram_message($chatId, "Не удалось найти пользователя Youtube или Twitch, проверьте корректность введенного адреса.");
+                }
             }else {
-                send_telegram_message($chatId, "Пример команды:".PHP_EOL.PHP_EOL."<pre>/new https://twitch.tv/HoneyMad</pre>".PHP_EOL.PHP_EOL."Поддерживаются ссылки на Twitch, VkPlayLive и Youtube");
+                addStreamerMessage($chatId);
             }
             break;
 
@@ -123,6 +165,9 @@ function handle_callback($callback) {
     log_message("Callback recieved: ".json_encode($callback));
 
     switch ($callbackData) {
+        case 'addStreamerCallback':
+            addStreamerMessage($chatId);
+            break;
         case 'buttons_remove':
             remove_buttons_from_message($chatId, $messageId);
             break;

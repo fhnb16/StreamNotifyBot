@@ -119,13 +119,13 @@ function merge_streamers_with_waitlist($streamers, $waitlist) {
 
     // Заполняем ассоциативный массив, где ключ — это комбинация nickname и platform
     foreach ($streamers as $streamer) {
-        $key = $streamer['nickname'] . '_' . $streamer['platform'];
+        $key = $streamer['nickname'] . '_' . $streamer['platform'] . '_' . $streamer['broadcaster_id'];
         $existingStreamers[$key] = $streamer;
     }
 
     // Обрабатываем $waitlist и добавляем новые стримеры, если они не существуют в $streamers
     foreach ($waitlist as $streamer) {
-        $key = $streamer['nickname'] . '_' . $streamer['platform'];
+        $key = $streamer['nickname'] . '_' . $streamer['platform'] . '_' . $streamer['broadcaster_id'];
 
         // Если ключ не найден в существующих стримерах, добавляем нового стримера
         if (!isset($existingStreamers[$key])) {
@@ -205,7 +205,7 @@ function request_new_twitch_access_token() {
 }
 
 // Get broadcaster ID by Twitch login name
-function get_broadcaster_id($nickname) {
+function get_broadcaster_id($nickname, $full = false) {
     $url = 'https://api.twitch.tv/helix/users?login=' . $nickname;
 
     $headers = [
@@ -217,7 +217,14 @@ function get_broadcaster_id($nickname) {
     $response = make_get_request($url, $headers);
 
     $data = json_decode($response, true);
-    return $data['data'][0]['id'] ?? null;
+    if(!$full){
+        return $data['data'][0]['id'] ?? null;
+    }else{
+        return [
+            'broadcaster_id' => $data['data'][0]['id'],
+            'name' => $data['data'][0]['display_name']
+        ] ?? null;
+    }
 }
 
 // Helper function to perform GET requests

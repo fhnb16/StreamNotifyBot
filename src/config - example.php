@@ -26,6 +26,12 @@ define('LOG_FILE', 'log.txt'); // Path to log file
 define('ERR_FILE', 'error.txt'); // Path to error file
 define('DEBUG', true);
 
+define('CFG_MONEY', [
+    "mir" => "0000 0000 0000 0000",
+    "ton" => "000000000000000000000000000000000000000000000000",
+    "btc" => "0000000000000000000000000000000000"
+]);
+
 function meta(){
     return '';
 }
