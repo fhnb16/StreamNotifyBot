@@ -32,20 +32,25 @@ log_message('Push notification received: ' . $rawPostData);
 
 // Получаем данные из XML
 $entry = $xml->entry ?? null;
-if (!$entry) {
+$del_entry = $xml->{'at:deleted-entry'} ?? null;
+if ($entry == null && $del_entry == null) {
     log_message('No entry found in push notification.');
     http_response_code(204); // Нет контента
     exit;
 }
 
 // Проверяем тип события (публикация нового видео)
-$videoId = (string)$entry->videoId;
-$channelId = (string)$entry->author->uri;
-$publishedDate = (string)$entry->published;
+$videoId = str_replace("yt:video:", "", (string)$entry->id) ?? null;
+$channelId = (string)$entry->author->uri ?? null;
+$publishedDate = (string)$entry->published ?? null;
 
 // Опционально проверяем заголовок или ссылку на видео
-$videoTitle = (string)$entry->title;
-$videoLink = (string)$entry->link->attributes()->href;
+$videoTitle = (string)$entry->title ?? null;
+$videoLink = (string)$entry->link->attributes()->href ?? null;
+
+if($entry == null && $del_entry != null){
+    $videoId = str_replace("yt:video:", "", (string)$del_entry->attributes()->ref);
+}
 
 // Если это не трансляция, можно игнорировать
 /*if (strpos($videoTitle, 'LIVE') === false) {
@@ -55,12 +60,13 @@ $videoLink = (string)$entry->link->attributes()->href;
 }*/
 
 // Получаем информацию о стриме через API
-$apiKey = YOUTUBE_API_KEY;
-$videoInfoUrl = "https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id={$videoId}&key={$apiKey}";
+//$apiKey = YOUTUBE_API_KEY;
+//$videoInfoUrl = "https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id={$videoId}&key={$apiKey}";
 
-$response = make_get_request($videoInfoUrl);
-$videoInfo = json_decode($response, true);
-log_message("Get user livestream info after callback: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+//$response = make_get_request($videoInfoUrl);
+//$videoInfo = json_decode($response, true);
+$videoInfo = get_stream_details($videoId);
+log_message("Get user livestream info after callback: " . json_encode($videoInfo['items'][0], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
 // Проверяем, что данные о стриме получены корректно
 if (isset($videoInfo['items'])) {
@@ -84,7 +90,7 @@ if (isset($videoInfo['items'])) {
         if($channel['broadcaster_id'] == $broadcaster_id) $id = $key; break;
     }
 
-    if($liveStreamInfo == null) {
+    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers'])) {
         log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
         if(isset($channels[$id]['viewers'])){
             // Load locale strings list from JSON file

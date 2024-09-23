@@ -29,7 +29,7 @@ function register_twitch_eventsub($broadcaster_id, $event_type = "stream.online"
 
 
 // Send Telegram message with optional inline buttons
-function send_telegram_message($chat_id, $message, $buttons = null) {
+function send_telegram_message($chat_id, $message, $buttons = null, $silent = false) {
     $url = TELEGRAM_API_URL . '/sendMessage';
 
     $getData = [
@@ -41,14 +41,17 @@ function send_telegram_message($chat_id, $message, $buttons = null) {
     // Если передан параметр отключения превью для ссылок
     if ($buttons !== null && is_bool($buttons)) {
         $getData += ['disable_web_page_preview' => !$buttons];
-    }
-
-    // Если кнопки переданы, добавляем их в параметры запроса
-    if ($buttons !== null && is_array($buttons)) {
+        $getData += ['no_webpage' => !$buttons];
+    }elseif ($buttons !== null && is_array($buttons)) { // Если кнопки переданы, добавляем их в параметры запроса
         $inlineKeyboard = [
             'inline_keyboard' => $buttons
         ];
         $getData['reply_markup'] = json_encode($inlineKeyboard);
+    }
+    
+    if ($silent) { // Если передан аргумент silent
+        $getData += ['disable_notification' => true];
+        $getData += ['silent' => true];
     }
 
     // Создаем строку запроса
@@ -675,6 +678,10 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     }
     $viewers = $channel['viewers'];
 
+    if($channel['platform'] == "youtube"){
+        $category = getCategoryFromID($category);
+    }
+
     $strings = isset($locales[$lang]) ? $locales[$lang] : $locales['en']; // Выбираем язык, если нет языка — используем английский
     
     // Если у стримера в json есть кастомные строки - используем их
@@ -761,7 +768,7 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
                     $message .= PHP_EOL . "<a href='" . $liveStreamUrlYoutube . $channel['url'] . "'><u>Ссылка на стрим</u></a>";
                 }
             }
-            $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $channel['nickname']) . " #".$channel['platform'] . ' #'.$status;
+            $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', str_replace('-', '_', $channel['nickname'])) . " #".$channel['platform'] . ' #'.$status;
 
             break;
     }
@@ -771,9 +778,15 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
 
 function notify_channels($channel, $message, $type, $previewEnabled) {
     log_message("Sending notification to channels for {$channel['nickname']}: {$message}");
+
+    $silent = false;
+
+    if($type == "update"){
+        $silent = true;
+    }
     
     if (defined('MAIN_CHAT_ID') && null !== MAIN_CHAT_ID && !empty(MAIN_CHAT_ID)) {
-        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message, $previewEnabled)); // Notify main chat
+        log_message("Send message to main hub. Telegram Request Result: " . send_telegram_message(MAIN_CHAT_ID, $message, $previewEnabled, $silent)); // Notify main chat
     }
     
     $notifications = load_json('notifications.json');
@@ -786,16 +799,16 @@ function notify_channels($channel, $message, $type, $previewEnabled) {
                 $chat_name = $notify_info['about'];
                 $notify_type = $notify_info['type'];
                 if ($notify_type === 'all') {
-                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled, $silent));
                 }
                 if ($notify_type === 'updates' && ($type == 'update' || $type == 'offline' )) {
-                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled, $silent));
                 }
                 if ($notify_type === 'live' && ($type == 'online' || $type == 'offline')) {
-                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled, $silent));
                 }
                 if ($notify_type === 'online' && $type == 'online') {
-                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled));
+                    log_message("Send message to '" . $chat_name . "'. Telegram Request Result: " . send_telegram_message($chat_id, $message, $previewEnabled, $silent));
                 }
             }
         
@@ -937,7 +950,7 @@ function get_stream_details($videoId) {
     
     $response = file_get_contents($url);
     $data = json_decode($response, true);
-    log_message("Get livestream details response: ". json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    log_message("Get livestream details response: ". json_encode($data['items'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
     if (isset($data['items'][0])) {
         $snippet = $data['items'][0]['snippet'];
@@ -1026,6 +1039,44 @@ function merge_webhook_with_channels($array1, $array2) {
     return $array1;
 }
 
+function getCategoryFromID($categoryID){
+    $categories = json_decode('{
+        "1": "Film & Animation",
+        "2": "Autos & Vehicles",
+        "10": "Music",
+        "15": "Pets & Animals",
+        "17": "Sports",
+        "18": "Short Movies",
+        "19": "Travel & Events",
+        "20": "Gaming",
+        "21": "Videoblogging",
+        "22": "People & Blogs",
+        "23": "Comedy",
+        "24": "Entertainment",
+        "25": "News & Politics",
+        "26": "Howto & Style",
+        "27": "Education",
+        "28": "Science & Technology",
+        "29": "Nonprofits & Activism",
+        "30": "Movies",
+        "31": "Anime\/Animation",
+        "32": "Action\/Adventure",
+        "33": "Classics",
+        "34": "Comedy",
+        "35": "Documentary",
+        "36": "Drama",
+        "37": "Family",
+        "38": "Foreign",
+        "39": "Horror",
+        "40": "Sci-Fi\/Fantasy",
+        "41": "Thriller",
+        "42": "Shorts",
+        "43": "Shows",
+        "44": "Trailers"
+    }', true);
+
+    return $categories[$categoryID] ?? $categoryID;
+}
 
 
 ?>

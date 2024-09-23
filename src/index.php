@@ -104,7 +104,7 @@ function handle_message($message) {
         case stristr($text,'/new'):
             //if($message['from']['id'] != ADMIN_ID) {send_telegram_message($chatId, "Недостаточно полномочий для выполнения"); exit();}
             $pattern = '/https?:\/\/(www\.)?(?<domain>[^\/]+)\/(?<nickname>[^\/]+)/';
-            preg_match($pattern, $message['text'], $matches);
+            preg_match($pattern, htmlspecialchars($message['text']), $matches);
             if($matches){
                 $replaceArray = [
                     '.com' => "",
@@ -289,6 +289,12 @@ function handle_inline_query($inlineQuery) {
                 break;
         }
 
+        $categoryText = $streamer['category'];
+
+        if($streamer['platform'] == "youtube"){
+            $categoryText = getCategoryFromID($streamer['category']);
+        }
+
         $streamTime = broadcastCalculatedTime($streamer['startedAt'], time('c'));
 
         $message = "";
@@ -303,11 +309,17 @@ function handle_inline_query($inlineQuery) {
             'Стрим идет: {Time}{NewLine}'.
             'Зрителей: {Viewers}';
         }
-        $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', $streamer['nickname']) . " #{platform} #{status}";
+
+        $liveStreamUrlYoutube = "https://www.youtube.com/watch?v=";
+        if(isset($streamer['url'])){
+            $message .= PHP_EOL . "<a href='" . $liveStreamUrlYoutube . $streamer['url'] . "'><u>Ссылка на стрим</u></a>";
+        }
+        
+        $message .= PHP_EOL . PHP_EOL . "#" . str_replace('@', '', str_replace('-', '_', $streamer['nickname'])) . " #{platform} #{status}";
 
         $replaceArray = [
             '{Name}' => "<a href='{$broadcastPlatform}{$streamer['nickname']}'><b><u>{$streamer['name']}</u></b></a>",
-            '{Category}' => "<b>".$streamer['category']."</b>",
+            '{Category}' => "<b>".$categoryText."</b>",
             '{Title}' => "<i>".$streamer['title']."</i>",
             '{Viewers}' => "~ <u>".$streamer['viewers']."</u>",
             '{Time}' => "<b>".$streamTime."</b>",
@@ -315,6 +327,7 @@ function handle_inline_query($inlineQuery) {
             '{platform}' => $streamer['platform'],
             '{NewLine}' => PHP_EOL
         ];
+
         $responseMessage = replaceMultipleStrings($message, $replaceArray);
 
         $results[] = [
@@ -327,7 +340,7 @@ function handle_inline_query($inlineQuery) {
                 'parse_mode' => "HTML",
                 'message_text' => $responseMessage,
             ],
-            'description' => !isset($streamer['viewers']) ? "🔴 [{$streamer['platform']}]" : "🟢 [{$streamer['platform']}], ~{$streamer['viewers']} viewers, {$streamer['category']}"
+            'description' => !isset($streamer['viewers']) ? "🔴 [{$streamer['platform']}]" : "🟢 [{$streamer['platform']}], ~{$streamer['viewers']} viewers, {$categoryText}"
         ];
     }
 
