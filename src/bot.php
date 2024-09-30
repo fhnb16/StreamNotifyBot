@@ -5,6 +5,9 @@ require_once 'functions.php';
 // detect cron request
 if (isset($_GET['cron'])) {
     log_message("############# Cron task #############");
+    if ($_GET['cron']=="youtube") {
+        log_message("-------------  YouTube  -------------");
+    }
 }
 
 // detect cron request
@@ -147,7 +150,7 @@ function youtubeSetup(&$channels){
 
         if(isset($_GET['cron']) && $_GET['cron'] == "youtube"){
 
-            if(isset($channels[$id]['startedAt']) && isset($channels[$id]['url'])){
+            if(isset($channels[$id]['startedAt']) || isset($channels[$id]['url']) || isset($channels[$id]['viewers'])){
 
                 $liveStreamInfo = get_stream_details($channels[$id]['url']);
 
@@ -166,7 +169,7 @@ function youtubeSetup(&$channels){
 
                 }
 
-            } else {
+            } /*else {
 
                 $liveStreamInfo = get_live_stream_info_by_channel_id($channels[$id]['broadcaster_id']);
 
@@ -180,7 +183,7 @@ function youtubeSetup(&$channels){
 
                 }
 
-            }
+            }*/
 
         }
 

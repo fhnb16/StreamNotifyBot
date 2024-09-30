@@ -932,7 +932,7 @@ function get_live_stream_info_by_channel_id($channelId) {
     
     $response = file_get_contents($url);
     $data = json_decode($response, true);
-    log_message("Get stream info by id respone: " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    log_message("Get stream info by id respone for user ".$channelId.": " . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
     if (isset($data['items'][0])) {
         $videoId = $data['items'][0]['id']['videoId'];
@@ -950,7 +950,7 @@ function get_stream_details($videoId) {
     
     $response = file_get_contents($url);
     $data = json_decode($response, true);
-    log_message("Get livestream details response: ". json_encode($data['items'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    log_message("Get livestream details response for video ".$videoId.": ". json_encode($data['items'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
     if (isset($data['items'][0])) {
         $snippet = $data['items'][0]['snippet'];

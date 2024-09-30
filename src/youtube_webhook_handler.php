@@ -49,7 +49,7 @@ $videoTitle = (string)$entry->title ?? null;
 $videoLink = (string)$entry->link->attributes()->href ?? null;
 
 if($entry == null && $del_entry != null){
-    $videoId = str_replace("yt:video:", "", (string)$del_entry->attributes()->ref);
+    $videoId = str_replace("yt:video:", "", (string)$del_entry->attributes()->ref) ?? null;
 }
 
 // Если это не трансляция, можно игнорировать
@@ -66,11 +66,11 @@ if($entry == null && $del_entry != null){
 //$response = make_get_request($videoInfoUrl);
 //$videoInfo = json_decode($response, true);
 $videoInfo = get_stream_details($videoId);
-log_message("Get user livestream info after callback: " . json_encode($videoInfo['items'][0], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+//log_message("Get user livestream info after callback: " . json_encode($videoInfo['items'][0], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
 // Проверяем, что данные о стриме получены корректно
-if (isset($videoInfo['items'])) {
-    $liveStreamInfo = $videoDetails = $videoInfo['items'][0];
+if (isset($videoInfo)) {
+    $liveStreamInfo = $videoDetails = $videoInfo;
 
     // Load channels list from JSON file
     $channels = load_json('channels.json');
@@ -90,7 +90,7 @@ if (isset($videoInfo['items'])) {
         if($channel['broadcaster_id'] == $broadcaster_id) $id = $key; break;
     }
 
-    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers'])) {
+    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers']) || $videoDetails['snippet']['liveBroadcastContent'] == "upcoming") {
         log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
         if(isset($channels[$id]['viewers'])){
             // Load locale strings list from JSON file
