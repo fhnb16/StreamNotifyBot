@@ -31,8 +31,10 @@ if ($xml === false) {
 log_message('Push notification received: ' . $rawPostData);
 
 // Получаем данные из XML
+$xml->registerXPathNamespace('yt', 'http://www.w3.org/2005/Atom');
+$xml->registerXPathNamespace('at', 'http://www.w3.org/2005/Atom');
 $entry = $xml->entry ?? null;
-$del_entry = $xml->{'at:deleted-entry'} ?? null;
+$del_entry = $xml->xpath('//at:deleted-entry')[0] ?? null;
 if ($entry == null && $del_entry == null) {
     log_message('No entry found in push notification.');
     http_response_code(204); // Нет контента
@@ -41,7 +43,8 @@ if ($entry == null && $del_entry == null) {
 
 // Проверяем тип события (публикация нового видео)
 $videoId = str_replace("yt:video:", "", (string)$entry->id) ?? null;
-$channelId = (string)$entry->author->uri ?? null;
+//$channelId = (string)$entry->author->uri ?? null;
+$channelId = (string)$xml->xpath('//yt:channelId')[0] ?? null;
 $publishedDate = (string)$entry->published ?? null;
 
 // Опционально проверяем заголовок или ссылку на видео
@@ -50,6 +53,7 @@ $videoLink = (string)$entry->link->attributes()->href ?? null;
 
 if($entry == null && $del_entry != null){
     $videoId = str_replace("yt:video:", "", (string)$del_entry->attributes()->ref) ?? null;
+    $channelId = str_replace("https://www.youtube.com/channel/", "", (string)$xml->xpath('//at:by')[0]->uri) ?? null;
 }
 
 // Если это не трансляция, можно игнорировать
@@ -84,15 +88,15 @@ if (isset($videoInfo)) {
 
     $id = null;
 
-    $broadcaster_id = $videoDetails['snippet']['channelId'];
+    $broadcaster_id = $channelId;
 
     foreach($channels as $key => $channel){
         if($channel['broadcaster_id'] == $broadcaster_id) $id = $key; break;
     }
 
-    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers']) || $videoDetails['snippet']['liveBroadcastContent'] == "upcoming") {
-        log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
+    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers']) || $videoDetails['liveBroadcastContent'] == "upcoming" || $videoDetails['liveBroadcastContent'] == "none") {
         if(isset($channels[$id]['viewers'])){
+            log_message("Offline or can't get info. Set to offline status ".$broadcaster_nickname.' ('.$broadcaster_id.')');
             // Load locale strings list from JSON file
             $locales = load_json('strings.json');
             $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], date('c'));
@@ -108,7 +112,7 @@ if (isset($videoInfo)) {
             notify_channels($channels[$id], $message, 'offline', false);
             return;
         }
-            return;
+        log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
     }
     
     $notifyAboutOnline = false;
@@ -121,24 +125,40 @@ if (isset($videoInfo)) {
     }
 
     $channels[$id]['name'] = $liveStreamInfo['username'];
+    $channel['name'] = $liveStreamInfo['username'];
     $channels[$id]['broadcaster_id'] = $broadcaster_id;
+    $channel['broadcaster_id'] = $broadcaster_id;
     $channels[$id]['title'] = $liveStreamInfo['title'];
+    $channel['title'] = $liveStreamInfo['title'];
     $channels[$id]['category'] = $liveStreamInfo['category'];
+    $channel['category'] = $liveStreamInfo['category'];
     $channels[$id]['viewers'] = $liveStreamInfo['viewers'];
+    $channel['viewers'] = $liveStreamInfo['viewers'];
     $channels[$id]['startedAt'] = $liveStreamInfo['start_time'];
+    $channel['startedAt'] = $liveStreamInfo['start_time'];
     $channels[$id]['url'] = $liveStreamInfo['url'];
+    $channel['url'] = $liveStreamInfo['url'];
     $channels[$id]['language'] = strtolower($liveStreamInfo['country']);
+    $channel['language'] = strtolower($liveStreamInfo['country']);
 
     // Save updated JSON with broadcaster_id and webhook expiration time
     $channelsNewHash = hash('sha256', serialize($channels));
     if ($channelsNewHash != $channelsHash) save_json('channels.json', $channels);
 
     // Извлекаем нужные поля
-    $channelTitle = $videoDetails['snippet']['channelTitle'];
-    $streamTitle = $videoDetails['snippet']['title'];
-    $liveViewers = $videoDetails['liveStreamingDetails']['concurrentViewers'] ?? 0;
-    $startTime = $videoDetails['liveStreamingDetails']['actualStartTime'] ?? null;
-    $category = $videoDetails['snippet']['categoryId']; // Категория видео
+    $channelTitle = $videoDetails['username'];
+    $streamTitle = $videoDetails['title'];
+    $liveViewers = $videoDetails['viewers'] ?? 0;
+    $startTime = $videoDetails['start_time'] ?? null;
+    $category = $videoDetails['category']; // Категория видео
+
+    /*'username' => $snippet['channelTitle'],  // Имя пользователя (канала)
+    'title' => $snippet['title'],  // Название трансляции
+    'category' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
+    'viewers' => isset($liveDetails['concurrentViewers']) ? $liveDetails['concurrentViewers'] : '-1',  // Количество зрителей
+    'start_time' => $liveDetails['actualStartTime'],  // Время начала трансляции
+    'url' => $videoId,  // Ссылка на трансляцию
+    'country' => isset($snippet['defaultAudioLanguage']) ? $snippet['defaultAudioLanguage'] : null*/
 
     $broadcastingTime = broadcastCalculatedTime($liveStreamInfo['start_time'], date('c'));
 
@@ -155,10 +175,10 @@ if (isset($videoInfo)) {
 
     // Выполняем действия: отправляем уведомления, обновляем базу данных, и т.д.
     // Пример: отправка уведомления в Telegram
-    //$message = "🔴 <b>{$channelTitle}</b> is now live!\n" .
+    /*$message = "🔴 <b>{$channelTitle}</b> is now live!\n" .
                "<b>Title:</b> {$streamTitle}\n" .
                "<b>Viewers:</b> {$liveViewers}\n" .
-               "<b>Watch here:</b> <a href='{$videoLink}'>Click here</a>";
+               "<b>Watch here:</b> <a href='{$videoLink}'>Click here</a>";*/
 
     //send_telegram_message(YOUR_CHAT_ID, $message);
 

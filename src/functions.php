@@ -958,13 +958,14 @@ function get_stream_details($videoId) {
 
         // Получаем нужную информацию
         $streamInfo = [
+            'liveBroadcastContent' => $snippet['liveBroadcastContent'],
             'username' => $snippet['channelTitle'],  // Имя пользователя (канала)
             'title' => $snippet['title'],  // Название трансляции
             'category' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
             'viewers' => isset($liveDetails['concurrentViewers']) ? $liveDetails['concurrentViewers'] : '-1',  // Количество зрителей
             'start_time' => $liveDetails['actualStartTime'],  // Время начала трансляции
             'url' => $videoId,  // Ссылка на трансляцию
-            'country' => isset($liveDetails['country']) ? $liveDetails['concurrentViewers'] : null
+            'country' => isset($snippet['defaultAudioLanguage']) ? $snippet['defaultAudioLanguage'] : null
         ];
         
         return $streamInfo;

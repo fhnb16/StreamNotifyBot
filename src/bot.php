@@ -154,18 +154,24 @@ function youtubeSetup(&$channels){
 
                 $liveStreamInfo = get_stream_details($channels[$id]['url']);
 
-                if($liveStreamInfo != null && isset($liveStreamInfo['viewers']) && $liveStreamInfo['viewers'] != "-1"){
+                if($liveStreamInfo != null && isset($liveStreamInfo['viewers']) && $liveStreamInfo['viewers'] != "-1" && $liveStreamInfo['liveBroadcastContent'] != "none"){
 
                     $channels[$id]['viewers'] = $liveStreamInfo['viewers'];
                     $channels[$id]['title'] = $liveStreamInfo['title'];
                     $channels[$id]['category'] = $liveStreamInfo['category'];
                     $channels[$id]['url'] = $liveStreamInfo['url'];
+                    
+                    $counter++;
+                    continue;
 
                 } else {
 
                     unset($channels[$id]['startedAt']);
                     unset($channels[$id]['url']);
                     unset($channels[$id]['viewers']);
+
+                    $counter++;
+                    continue;
 
                 }
 
