@@ -651,7 +651,11 @@ function generateStreamMessage($channel, $locales, $livestreamInfo, $StreamTime,
     $category = $lang = $title = $viewers = "";
 
     if($livestreamInfo !== null) {
-        $category = $livestreamInfo['game_name'];
+        if(isset($livestreamInfo['game_name'])){
+            $category = $livestreamInfo['game_name'];
+        }else{
+            $category = $livestreamInfo['category'];
+        }
         $title = $livestreamInfo['title'];
         $lang = $livestreamInfo['language'];
         if(isset($livestreamInfo['viewer_count'])){
@@ -960,12 +964,20 @@ function get_stream_details($videoId) {
         $streamInfo = [
             'liveBroadcastContent' => $snippet['liveBroadcastContent'],
             'username' => $snippet['channelTitle'],  // Имя пользователя (канала)
+            'user_name' => $snippet['channelTitle'],  // Имя пользователя (канала)
+            'user_login' => $snippet['channelId'],  // Имя пользователя (канала)
+            'type' => $snippet['liveBroadcastContent'],
+            'nickname' => $snippet['channelTitle'],  // Имя пользователя (канала)
             'title' => $snippet['title'],  // Название трансляции
             'category' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
+            'game_id' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
+            'game_name' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
+            'viewer_count' => isset($liveDetails['concurrentViewers']) ? $liveDetails['concurrentViewers'] : '-1',  // Количество зрителей
             'viewers' => isset($liveDetails['concurrentViewers']) ? $liveDetails['concurrentViewers'] : '-1',  // Количество зрителей
-            'start_time' => $liveDetails['actualStartTime'],  // Время начала трансляции
+            'start_time' => $liveDetails['actualStartTime'] ?? date('c'),  // Время начала трансляции
             'url' => $videoId,  // Ссылка на трансляцию
-            'country' => isset($snippet['defaultAudioLanguage']) ? $snippet['defaultAudioLanguage'] : null
+            'country' => isset($snippet['defaultAudioLanguage']) ? $snippet['defaultAudioLanguage'] : null,
+            'language' => isset($snippet['defaultAudioLanguage']) ? $snippet['defaultAudioLanguage'] : null
         ];
         
         return $streamInfo;

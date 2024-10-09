@@ -42,9 +42,9 @@ if ($entry == null && $del_entry == null) {
 }
 
 // Проверяем тип события (публикация нового видео)
-$videoId = str_replace("yt:video:", "", (string)$entry->id) ?? null;
+$videoId = (string)$xml->xpath('//yt:videoId')[0] ?? null;
 //$channelId = (string)$entry->author->uri ?? null;
-$channelId = (string)$xml->xpath('//yt:channelId')[0] ?? null;
+$channelId = ((string)$xml->xpath('//yt:channelId')[0] ?? (string)$entry->author->uri) ?? null;
 $publishedDate = (string)$entry->published ?? null;
 
 // Опционально проверяем заголовок или ссылку на видео
@@ -86,21 +86,30 @@ if (isset($videoInfo)) {
         exit;
     }
 
+    /*
     $id = null;
 
     $broadcaster_id = $channelId;
 
     foreach($channels as $key => $channel){
-        if($channel['broadcaster_id'] == $broadcaster_id) $id = $key; break;
-    }
+        if($channel['broadcaster_id'] == $broadcaster_id) {
+            $id = $key;
+            break;
+        }
+    }*/
 
-    if($liveStreamInfo == null || $del_entry != null || $liveStreamInfo['viewers'] == "-1" || !isset($liveStreamInfo['viewers']) || $videoDetails['liveBroadcastContent'] == "upcoming" || $videoDetails['liveBroadcastContent'] == "none") {
+    //$id = array_search($channelId, array_column($channels, 'broadcaster_id'));
+    $id = array_keys($channels, $channelId, true)[0] ?? null;
+
+    log_message("Broadcaster: " . $broadcaster_id . ", ID: " . $id);
+
+    if(($liveStreamInfo == null || $del_entry != null) || !isset($liveStreamInfo['viewer_count']) || $videoDetails['liveBroadcastContent'] == "upcoming" || $videoDetails['liveBroadcastContent'] == "none") {
         if(isset($channels[$id]['viewers'])){
             log_message("Offline or can't get info. Set to offline status ".$broadcaster_nickname.' ('.$broadcaster_id.')');
             // Load locale strings list from JSON file
             $locales = load_json('strings.json');
             $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], date('c'));
-            $message = generateStreamMessage($channel, $locales, $liveStreamInfo, $broadcastingTime, "offline");
+            $message = generateStreamMessage($channels[$id], $locales, $liveStreamInfo, $broadcastingTime, "offline");
             unset($channels[$id]['startedAt']);
             unset($channels[$id]['url']);
             unset($channels[$id]['viewers']);
@@ -111,35 +120,30 @@ if (isset($videoInfo)) {
 
             notify_channels($channels[$id], $message, 'offline', false);
             return;
+        } else
+        {
+            log_message("Stream is not started yet. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
+            return;
         }
-        log_message("Offline or can't get info. Skip ".$broadcaster_nickname.' ('.$broadcaster_id.')');
     }
     
     $notifyAboutOnline = false;
     $locales = null;
 
-    if(!isset($channels[$id]['viewers']) && $liveStreamInfo['viewers']){
+    if(!isset($channels[$id]['viewers']) && $liveStreamInfo['viewer_count']){
         $notifyAboutOnline = true;
         // Load locale strings list from JSON file
         $locales = load_json('strings.json');
     }
 
     $channels[$id]['name'] = $liveStreamInfo['username'];
-    $channel['name'] = $liveStreamInfo['username'];
     $channels[$id]['broadcaster_id'] = $broadcaster_id;
-    $channel['broadcaster_id'] = $broadcaster_id;
     $channels[$id]['title'] = $liveStreamInfo['title'];
-    $channel['title'] = $liveStreamInfo['title'];
     $channels[$id]['category'] = $liveStreamInfo['category'];
-    $channel['category'] = $liveStreamInfo['category'];
-    $channels[$id]['viewers'] = $liveStreamInfo['viewers'];
-    $channel['viewers'] = $liveStreamInfo['viewers'];
+    $channels[$id]['viewers'] = $liveStreamInfo['viewer_count'];
     $channels[$id]['startedAt'] = $liveStreamInfo['start_time'];
-    $channel['startedAt'] = $liveStreamInfo['start_time'];
     $channels[$id]['url'] = $liveStreamInfo['url'];
-    $channel['url'] = $liveStreamInfo['url'];
     $channels[$id]['language'] = strtolower($liveStreamInfo['country']);
-    $channel['language'] = strtolower($liveStreamInfo['country']);
 
     // Save updated JSON with broadcaster_id and webhook expiration time
     $channelsNewHash = hash('sha256', serialize($channels));
@@ -148,7 +152,7 @@ if (isset($videoInfo)) {
     // Извлекаем нужные поля
     $channelTitle = $videoDetails['username'];
     $streamTitle = $videoDetails['title'];
-    $liveViewers = $videoDetails['viewers'] ?? 0;
+    $liveViewers = $videoDetails['viewer_count'] ?? 0;
     $startTime = $videoDetails['start_time'] ?? null;
     $category = $videoDetails['category']; // Категория видео
 
@@ -164,7 +168,7 @@ if (isset($videoInfo)) {
 
     if($notifyAboutOnline){
 
-        $message = generateStreamMessage($channel, $locales, $liveStreamInfo, $broadcastingTime, "online");
+        $message = generateStreamMessage($channels[$id], $locales, $videoDetails, $broadcastingTime, "online");
 
         notify_channels($channels[$id], $message, 'online', true);
 

@@ -154,9 +154,9 @@ function youtubeSetup(&$channels){
 
                 $liveStreamInfo = get_stream_details($channels[$id]['url']);
 
-                if($liveStreamInfo != null && isset($liveStreamInfo['viewers']) && $liveStreamInfo['viewers'] != "-1" && $liveStreamInfo['liveBroadcastContent'] != "none"){
+                if($liveStreamInfo != null && isset($liveStreamInfo['viewer_count']) && $liveStreamInfo['viewer_count'] != "-1" && $liveStreamInfo['liveBroadcastContent'] != "none"){
 
-                    $channels[$id]['viewers'] = $liveStreamInfo['viewers'];
+                    $channels[$id]['viewers'] = $liveStreamInfo['viewer_count'];
                     $channels[$id]['title'] = $liveStreamInfo['title'];
                     $channels[$id]['category'] = $liveStreamInfo['category'];
                     $channels[$id]['url'] = $liveStreamInfo['url'];
@@ -166,9 +166,15 @@ function youtubeSetup(&$channels){
 
                 } else {
 
+                    $locales = load_json('strings.json');
+                    $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], date('c'));
+                    $message = generateStreamMessage($channels[$id], $locales, $liveStreamInfo, $broadcastingTime, "offline");
+                    notify_channels($channels[$id], $message, 'offline', false);
+
                     unset($channels[$id]['startedAt']);
                     unset($channels[$id]['url']);
                     unset($channels[$id]['viewers']);
+                    
 
                     $counter++;
                     continue;
