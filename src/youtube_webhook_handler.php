@@ -86,10 +86,11 @@ if (isset($videoInfo)) {
         exit;
     }
 
+    $broadcaster_id = $channelId;
+
     /*
     $id = null;
 
-    $broadcaster_id = $channelId;
 
     foreach($channels as $key => $channel){
         if($channel['broadcaster_id'] == $broadcaster_id) {
@@ -98,18 +99,24 @@ if (isset($videoInfo)) {
         }
     }*/
 
-    //$id = array_search($channelId, array_column($channels, 'broadcaster_id'));
-    $id = array_keys($channels, $channelId, true)[0] ?? null;
+    $id = array_search($channelId, array_column($channels, 'broadcaster_id')) ?? null;
+    //$id = array_keys($channels, $broadcaster_id, true)[0] ?? null;
 
-    log_message("Broadcaster: " . $broadcaster_id . ", ID: " . $id);
+    if($id == null){
+        log_message("Can't get channel item for broadcaster with ID: " . $channelId . ". Skipping.");
+        return;
+    }
+    //$id = array_keys($channels, $channelId, true)[0] ?? null;
 
-    if(($liveStreamInfo == null || $del_entry != null) || !isset($liveStreamInfo['viewer_count']) || $videoDetails['liveBroadcastContent'] == "upcoming" || $videoDetails['liveBroadcastContent'] == "none") {
+    log_message("Broadcaster: " . $channelId . ", ID: " . $id);
+
+    if(($liveStreamInfo == null || $del_entry != null) || $videoDetails['liveBroadcastContent'] == "upcoming" || $videoDetails['liveBroadcastContent'] == "none") {
         if(isset($channels[$id]['viewers'])){
             log_message("Offline or can't get info. Set to offline status ".$broadcaster_nickname.' ('.$broadcaster_id.')');
             // Load locale strings list from JSON file
             $locales = load_json('strings.json');
             $broadcastingTime = broadcastCalculatedTime($channels[$id]['startedAt'], date('c'));
-            $message = generateStreamMessage($channels[$id], $locales, $liveStreamInfo, $broadcastingTime, "offline");
+            $message = generateStreamMessage($channels[$id], $locales, $videoDetails, $broadcastingTime, "offline");
             unset($channels[$id]['startedAt']);
             unset($channels[$id]['url']);
             unset($channels[$id]['viewers']);
@@ -137,7 +144,6 @@ if (isset($videoInfo)) {
     }
 
     $channels[$id]['name'] = $liveStreamInfo['username'];
-    $channels[$id]['broadcaster_id'] = $broadcaster_id;
     $channels[$id]['title'] = $liveStreamInfo['title'];
     $channels[$id]['category'] = $liveStreamInfo['category'];
     $channels[$id]['viewers'] = $liveStreamInfo['viewer_count'];

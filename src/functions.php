@@ -968,6 +968,7 @@ function get_stream_details($videoId) {
             'user_login' => $snippet['channelId'],  // Имя пользователя (канала)
             'type' => $snippet['liveBroadcastContent'],
             'nickname' => $snippet['channelTitle'],  // Имя пользователя (канала)
+            'name' => $snippet['channelTitle'],  // Имя пользователя (канала)
             'title' => $snippet['title'],  // Название трансляции
             'category' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
             'game_id' => $snippet['categoryId'],  // Категория (ID категории, для отображения нужно сопоставление с именами категорий)
